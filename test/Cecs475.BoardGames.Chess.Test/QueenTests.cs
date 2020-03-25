@@ -9,312 +9,381 @@ using Cecs475.BoardGames.Model;
 
 namespace Cecs475.BoardGames.Chess.Test {
 	public class QueenBoardTests : ChessTest {
-		/// <summary>
-		/// White's Queen attacks Black's Queen and tests advantage, then the
-		/// advantage of the game should reset to previous state after undoing
-		/// the attack
-		/// </summary>
 		[Fact]
-		public void WhiteUndoQueenAttack() {
-			List<Tuple<BoardPosition, ChessPiece>> startingPositions = new List<Tuple<BoardPosition, ChessPiece>>();
+		public void QueenAvailableMovesTest() {
+			ChessBoard b = new ChessBoard();
+			IEnumerable<ChessMove> possMoves = b.GetPossibleMoves();
+			IEnumerable<ChessMove> surroundedQueen = GetMovesAtPosition(possMoves, Pos("e8"));
+			surroundedQueen.Should().BeEmpty("The queen is surround by all the other pieces so it cannot move");
 
-			// White Positions
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(7, 4), new ChessPiece(ChessPieceType.King, 1)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(7, 3), new ChessPiece(ChessPieceType.Queen, 1)));
-
-			// Black Positions
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(0, 4), new ChessPiece(ChessPieceType.King, 2)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(3, 3), new ChessPiece(ChessPieceType.Queen, 2)));
-
-			ChessBoard b = new ChessBoard(startingPositions);
-
-			var possMoves = b.GetPossibleMoves();
-
-			var queenMoves = GetMovesAtPosition(possMoves, Pos("d1"));
-			queenMoves.Should().Contain(Move("d1, d5"), "White Queen should be able to Black Queen");
-
-			Apply(b, Move("d1, d5"));
-
-			b.CurrentAdvantage.Should().Be(Advantage(1, 9), "Advantage shifts towards White for taking Black's Queen");
-
-			b.UndoLastMove();
-
-			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "Advantage resets to 0, 0 after undoing move");
 		}
 
-		//Checking possible moves for queen
+		///<summary>
+		///Test to check available moves for queens(black and white) 
+		///</summary>
 		[Fact]
-		public void PossibleMovesQueen() {
+		public void QueensPossibleMoves() {
+			//Creating a new board 
+			ChessBoard b = new ChessBoard();
+
+			var posMoves = b.GetPossibleMoves();
+			var checkWhiteQueensMoves = GetMovesAtPosition(posMoves, Pos("d1"));
+			checkWhiteQueensMoves.Should().HaveCount(0, "When the game starts the queen shouldn't have possible moves");
+
+			//apply white's turn
+			Apply(b, "c2,c3");
+
+			//first turn of the black, the black queen should have 0 possible moves 
+			posMoves = b.GetPossibleMoves();
+			var checkBlackQueensMoves = GetMovesAtPosition(posMoves, Pos("d8"));
+			checkBlackQueensMoves.Should().HaveCount(0, "On first move of black the black queen shouldn't have possible moves");
+
+			//Since black didn't perform his turn, white's queen should still have 0 available moves even though it's left upper diagonal is open
+			posMoves = b.GetPossibleMoves();
+			checkWhiteQueensMoves = GetMovesAtPosition(posMoves, Pos("d1"));
+			checkWhiteQueensMoves.Should().HaveCount(0, "This is black's turn, white queen should have 0 possible moves");
+
+			//apply black's turn 
+			Apply(b, "d7,d6");
+
+			//Whites turn, after moving the pawn in c2, the white queen should have 3 moves 
+			posMoves = b.GetPossibleMoves();
+			checkWhiteQueensMoves = GetMovesAtPosition(posMoves, Pos("d1"));
+			checkWhiteQueensMoves.Should().HaveCount(3, "3 possible moves on the left upper diagonal");
+
+			//Apply white's turn - move the queen to the boarder of the board -- put the black king in check
+			Apply(b, "d1, a4");
+
+			//Black's queen should have only one possible move after the pawn opened d7
+			posMoves = b.GetPossibleMoves();
+			checkBlackQueensMoves = GetMovesAtPosition(posMoves, Pos("d8"));
+			checkBlackQueensMoves.Should().HaveCount(1, "On first move of black the black queen shouldn't have possible moves");
+
+			//Board should be in check 
+			b.IsCheck.Should().BeTrue("The black king is in check");
+
+			//Apply black's turn 
+			Apply(b, "c7,c6");
+
+			//Board should not be in check 
+			b.IsCheck.Should().BeFalse("The black king is not in check");
+
+			//Whites turn, since the white queen is at the boarder 
+			posMoves = b.GetPossibleMoves();
+			checkWhiteQueensMoves = GetMovesAtPosition(posMoves, Pos("a4"));
+			checkWhiteQueensMoves.Should().HaveCount(16, "");
+
+
+		}
+
+		/// <summary>
+		/// A pinned Queen can only moe along the file or rank it is currently pinned on
+		/// </summary>
+		[Fact]
+		public void PartialPinOnQueen() {
 			ChessBoard b = CreateBoardFromMoves(
-				 "e2, e4",
-				 "e7, e5",
-				 "f1, c4",
-				 "b8, c6");
+				"e2, e4",
+				"d7, d5",
+				"e4, d5",
+				"d8, d6",
+				"d1, e2"
+				);
+
+			//Move black's Queen to pin white's Queen
+			Apply(b, "d6, e6");
+
 			var possMoves = b.GetPossibleMoves();
-			var expectedQueenMoves = GetMovesAtPosition(possMoves, Pos("d1"));
-			expectedQueenMoves.Should().HaveCount(4, "Queen can only move diagonally due to other pieces blocking it")
-				 .And.Contain(Move("d1, e2"))
-				 .And.Contain(Move("d1, f3"))
-				 .And.Contain(Move("d1, g4"))
-				 .And.Contain(Move("d1, h5"));
+			var pinnedQueenExpected = GetMovesAtPosition(possMoves, Pos("e2"));
+			pinnedQueenExpected.Should().HaveCount(4, "Queen can move 3 empty spaces forward, and capture the opposing Queen in the 4th space forward")
+				.And.Contain(Move("e2, e3"))
+				.And.Contain(Move("e2, e4"))
+				.And.Contain(Move("e2, e5"))
+				.And.Contain(Move("e2, e6"));
 		}
 
 		/// <summary>
-		/// Test a simple capture undo
+		/// Move Queen Into Check 
+		/// Test possible moves that Can escape Check
 		/// </summary>
 		[Fact]
-		public void TestCaptureUndo() {
-			ChessBoard b = CreateBoardFromPositions(
-				 Pos("e4"), ChessPieceType.Queen, 1,
-				 Pos("a1"), ChessPieceType.King, 1,
-				 Pos("h8"), ChessPieceType.King, 2,
-				 Pos("b7"), ChessPieceType.Pawn, 2
+		public void QueenMove_IntoCheck() {
+			ChessBoard b = CreateBoardFromMoves(
+				"e2, e3",
+				"a7, a5",
+				"d1, h5",
+				"a8, a6",
+				"h5, a5",
+				"h7, h5",
+				"h2, h4",
+				"a6, h6",
+				"a5, c7",
+				"f7, f6"
 			);
 
-			b.CurrentAdvantage.Should().Be(Advantage(1, 8), "White has a current advantage of 8");
-			b.GetPieceAtPosition(Pos("e4")).ShouldBeEquivalentTo(new ChessPiece(ChessPieceType.Queen, 1), "Position e4 should be a Queen for player 1");
-			b.GetPieceAtPosition(Pos("b7")).ShouldBeEquivalentTo(new ChessPiece(ChessPieceType.Pawn, 2), "Position b7 should be a Pawn for player 2");
+			//Move queen and force a Check
+			Apply(b, Move("c7, d7"));
 
-			Apply(b, Move("e4, b7"));
+			//Check board states
+			b.IsCheck.Should().BeTrue("The king is threatened by the Queen at d7");
+			b.IsCheckmate.Should().BeFalse("The kind is not in check mate by Queen at d7");
+			b.CurrentPlayer.Should().Be(2, "Player 2 should have the next move, Player one put Player 2 in Check, and King has an escape");
 
-			b.CurrentAdvantage.Should().Be(Advantage(1, 9), "Black has a current advantage of 9 now");
-			b.GetPieceAtPosition(Pos("b7")).ShouldBeEquivalentTo(new ChessPiece(ChessPieceType.Queen, 1), "Position b7 should be a Queen for player 1 after move (e4, b7)");
+			//get the moves of all possible moves
+			var possMoves = b.GetPossibleMoves();
 
+			//get the moves of the Player 2's Queen
+			var queenMoves = GetMovesAtPosition(possMoves, Pos("d8"));
+			queenMoves.Should().Contain(Move("d8, d7")).And.HaveCount(1, "Queen can only attack Queen to save King from Check");
+
+			//get the moves of the Player 2's King
+			var kingMoves = GetMovesAtPosition(possMoves, Pos("e8"));
+			kingMoves.Should().Contain(Move("e8, d7"))
+				.And.Contain(Move("e8, f7"))
+				.And.HaveCount(2, "King has 2 moves, attack Queen at d7 or run away to f7");
+		}
+
+		//applies certain moves to the chess board and makes sure the number of moves the queen can do is correct
+		[Fact]
+		public void GetPossibleMoves_Queen() {
+
+			ChessBoard b = new ChessBoard();
+
+			//checks the initial state of the board to make sure the queen has no moves
+			var possMoves = b.GetPossibleMoves();
+			var noMoves = GetMovesAtPosition(possMoves, Pos("d1"));
+			noMoves.Should().BeEmpty("The queen should not be able to move at all at the beginning of the game");
+
+			//move the white pawn in the next column to the queen two spaces forward
+			Apply(b,
+				"e2, e4",
+				"c7, c5");
+
+			//The queen should now be able to move diagonally with 4 possible positions
+			possMoves = b.GetPossibleMoves();
+			var oneMove = GetMovesAtPosition(possMoves, Pos("d1"));
+			oneMove.Should().HaveCount(4, "The queen can move diagonally").And.BeEquivalentTo(Move("d1, e2"),
+				Move("d1, f3"), Move("d1, g4"), Move("d1, h5"));
+
+			//move the queen diagonally to the right 
+			Apply(b,
+				"d1, h5",
+				"g7, g6");
+
+			//The queen should now be able to move in multiple directions
+			possMoves = b.GetPossibleMoves();
+			var multipleMoves = GetMovesAtPosition(possMoves, Pos("h5"));
+			multipleMoves.Should().HaveCount(14, "The queen can move in multiple directions");
+		}
+
+		/// <summary>
+		/// Check all possible moves of white queen.
+		/// </summary>
+		[Fact]
+		public void QueenPossibleMoves4() {
+			ChessBoard b = CreateBoardFromMoves();
+
+			var possMoves = b.GetPossibleMoves();
+			var queenMoves = GetMovesAtPosition(possMoves, Pos("d1"));
+			queenMoves.Should().HaveCount(0, "the queen at d1 is blocked by surrounding pieces and pawns");
+			Apply(b, "d2, d4"); // move white pawn out of the way
+			Apply(b, "a7, a6"); // black move
+			possMoves = b.GetPossibleMoves();
+			queenMoves = GetMovesAtPosition(possMoves, Pos("d1"));
+			queenMoves.Should().HaveCount(2, "the queen at d1 is no longer blocked by pawn and can move forward");
+
+			Apply(b, "d1, d2"); // move queen forward one square
+			Apply(b, "a6, a5"); // black move
+			possMoves = b.GetPossibleMoves();
+			queenMoves = GetMovesAtPosition(possMoves, Pos("d2"));
+			queenMoves.Should().HaveCount(9, "the queen at d2 can either move forwards, backwards, or diagonally left and can capture pawn, or diagonally right");
+
+			Apply(b, "d2, d3"); // move queen forward one square
+			Apply(b, "a5, a4"); // black move
+			possMoves = b.GetPossibleMoves();
+			queenMoves = GetMovesAtPosition(possMoves, Pos("d3"));
+			queenMoves.Should().HaveCount(16, "the queen at d2 can move backwards, or diagonally left, or diagonally right and can capture pawn");
+
+			Apply(b, "d3, f5"); // move queen forward one square
+			Apply(b, "a4, a3"); // black move
+			possMoves = b.GetPossibleMoves();
+			queenMoves = GetMovesAtPosition(possMoves, Pos("f5"));
+			queenMoves.Should().HaveCount(19, "the queen at f5 can move in all directions");
+
+			Apply(b, "d4, d5"); // white move
+			Apply(b, "e7, e6"); // black move
+			Apply(b, "d5, e6"); // white pawn capture black pawn
+			Apply(b, "a8, a7"); // black move
+			Apply(b, "f5, e5"); // white move
+			Apply(b, "a7, a8"); // black move
+			Apply(b, "e6, d7"); //white queen and pawn put king in check
+
+			b.IsCheck.Should().BeTrue("the black king is threatened by the pawn at d7 and queen at e5");
+			possMoves = b.GetPossibleMoves();
+			possMoves.Should().HaveCount(1, "black king must capture white pawn to avoid capture by white queen")
+				.And.BeEquivalentTo(Move("e8, d7"));
+
+			Apply(b, "e8, d7"); // black move
+			possMoves = b.GetPossibleMoves();
+			queenMoves = GetMovesAtPosition(possMoves, Pos("e5"));
+			queenMoves.Should().HaveCount(20, "the queen at e5 can move in all directions");
+
+			Apply(b, "c1, g5"); // white move
+			Apply(b, "a8, a7"); // black move
+			Apply(b, "e5, d5"); // white queen and bishop puts king in check
+
+			b.IsCheck.Should().BeTrue("the black king is threatened by the pawn at d7 and queen at e5");
+			possMoves = b.GetPossibleMoves();
+			possMoves.Should().HaveCount(2, "black king can move or black bishop can move in front of king to avoid king's capture by white queen")
+				.And.BeEquivalentTo(Move("d7, e8"), Move("f8, d6"));
+
+			Apply(b, "d7, e8"); // black move
+			Apply(b, "d5, b7"); // queen captures black pawn
+			Apply(b, "h7, h6"); // black move
+			Apply(b, "b7, a8"); // queen moves into a corner
+			Apply(b, "h6, h5"); // black move
+
+			possMoves = b.GetPossibleMoves();
+			queenMoves = GetMovesAtPosition(possMoves, Pos("a8"));
+			queenMoves.Should().HaveCount(7, "the queen at a8 can only move right diagonally or downwards (capturing a rook) or right (capturing a knight");
+		}
+
+		[Fact]
+		public void QueenPossibleMoves3() {
+			ChessBoard b = CreateBoardFromMoves(
+				 "d2, d4",
+				 "b8, c6",
+				 "d1, d3",
+				 "c6, b8",
+				 "d4, d5",
+				 "b8, c6",
+				 "d5, c6",
+				 "b7, c6"
+				 );
+			var possibleMoves = b.GetPossibleMoves();
+			var QueenMoves = GetMovesAtPosition(possibleMoves, Pos("d3"));
+			QueenMoves.Should().HaveCount(20, "Queen can move in 20 different squares this turn");
+		}
+
+
+		[Fact]
+		public void ValidatingGetPossibleMoves() {
+			ChessBoard b = CreateBoardFromMoves(
+				"a2, a3",
+				"d7, d5",
+				"b2, b3",
+				"d8, d6",
+				"c2, c3"
+				);
+			var possMoves = b.GetPossibleMoves();
+			GetMovesAtPosition(possMoves, Pos("d6")).Should().HaveCount(16, "Queen has 16 possible moves")
+								.And.Contain(Move("d6, d7"))
+								.And.Contain(Move("d6, d8"))
+								.And.Contain(Move("d6, c6"))
+								.And.Contain(Move("d6, b6"))
+								.And.Contain(Move("d6, a6"))
+								.And.Contain(Move("d6, e6"))
+								.And.Contain(Move("d6, f6"))
+								.And.Contain(Move("d6, g6"))
+								.And.Contain(Move("d6, h6"))
+								.And.Contain(Move("d6, e5"))
+								.And.Contain(Move("d6, f4"))
+								.And.Contain(Move("d6, g3"))
+								.And.Contain(Move("d6, h2"))
+								.And.Contain(Move("d6, a3"))
+								.And.Contain(Move("d6, b4"))
+								.And.Contain(Move("d6, c5"));
 			b.UndoLastMove();
-
-			b.GetPieceAtPosition(Pos("e4")).ShouldBeEquivalentTo(new ChessPiece(ChessPieceType.Queen, 1), "Position e4 should be a Queen for player 1 after undo");
-			b.GetPieceAtPosition(Pos("b7")).ShouldBeEquivalentTo(new ChessPiece(ChessPieceType.Pawn, 2), "Position b7 should be a Pawn for player 2 undo");
-
+			b.CurrentAdvantage.Should().Be(Advantage(0, 0));
+			b.CurrentPlayer.Should().Be(1, "undoing the Pawn's move from c2 to c3 will allow player one to make the next move");
+			b.GetPieceAtPosition(Pos("d6")).PieceType.Should().Be(ChessPieceType.Queen, "Black's Queen at position (3, 5)");
+			b.GetPieceAtPosition(Pos("d5")).PieceType.Should().Be(ChessPieceType.Pawn, "Black's pawn at position (3, 4)");
+			b.GetPieceAtPosition(Pos("c2")).PieceType.Should().Be(ChessPieceType.Pawn, "White's pawn at position (2, 1)");
+			b.GetPieceAtPosition(Pos("b3")).PieceType.Should().Be(ChessPieceType.Pawn, "White's king at position (1, 2)");
+			b.GetPieceAtPosition(Pos("a3")).PieceType.Should().Be(ChessPieceType.Pawn, "White's king at position (0, 2)");
 		}
 
-		/// <summary>
-		/// The test checks possible moves for queen when the friendly king is in check or not. 
-		/// Test : - GetPossibleMoves
-		/// Player: - Black
-		/// Result: - In the given layout of the board, black queen should be able to capture all white pieces 
-		/// in the board. However, when the black king is at check, the queen's possible move is restricted. In
-		/// addition, queen cannot capture two enemy pieces in one move. 
-		/// </summary>
-		[Fact]
-		public void QueenPossibleMoves() {
-			ChessBoard board = CreateBoardFromPositions(
-				 Pos("a2"), ChessPieceType.Rook, 1,
-				 Pos("e1"), ChessPieceType.King, 1,
-				 Pos("e4"), ChessPieceType.Pawn, 1,
-				 Pos("f5"), ChessPieceType.Pawn, 1,
-				 Pos("d5"), ChessPieceType.Queen, 2,
-				 Pos("b8"), ChessPieceType.King, 2);
-
-			//apply move to a white piece
-			Apply(board, "e1,e2");
-			var possibleMoves = board.GetPossibleMoves();
-			var queenMoves = GetMovesAtPosition(possibleMoves, Pos("d5"));
-
-			queenMoves.Should().Contain(Move("d5,e4"), "The queen should be able to capture white pawn at e4")
-				 .And.Contain(Move("d5,f5"), "The queen should be able to capture white pawn at f5")
-				 .And.Contain(Move("d5,a2"), "The queen should be able to capture the white rook at a2");
-
-			board.UndoLastMove();
-
-			//apply move to white rook so black king is in check
-			Apply(board, "a2,b2");
-
-			possibleMoves = board.GetPossibleMoves();
-			queenMoves = GetMovesAtPosition(possibleMoves, Pos("d5"));
-			queenMoves.Should().NotContain(Move("d5,e4"), "The queen should not be able to capture because of check to king")
-				 .And.NotContain(Move("d5,f5"), "The queen should not be able to capture because of check to king");
-
-			board.UndoLastMove();
-
-			//apply move to a white pawn
-			Apply(board, "e4,e5");
-
-			possibleMoves = board.GetPossibleMoves();
-			queenMoves = GetMovesAtPosition(possibleMoves, Pos("d5"));
-			queenMoves.Should().Contain(Move("d5,e5"), "The queen can capture the adjacent white pawn at e5")
-				 .And.NotContain(Move("d5,f5"), "The queen cannot capture two pawns at the same ");
-
-		}
 
 		/// <summary>
-		/// Testing undo of queen capture
+		/// Queen gets captured then capture is undone
 		/// </summary>
 		[Fact]
-		public void UndoQueenCapture() {
+		public void QueenCaptureUndo() {
 			ChessBoard b = CreateBoardFromMoves(
 				"c2, c4",
+				"c7, c5",
+				"d2, d4",
+				"b8, c6",
+				"c1, e3",
+				"d8, a5",
+				"e3, d2"
+			);
+
+			Apply(b, Move("a5, d2")); // black queen capture white bishop
+			b.PositionIsAttacked(Pos("d2"), 1).Should().BeTrue("Player 1's queen should be threatened by Player 2's queen (d1)");
+			b.IsCheck.Should().BeTrue("Player 1's king should be in check by Player 2's black queen");
+			b.IsCheckmate.Should().BeFalse("Player 1's king should not be in checkmate");
+
+			Apply(b, Move("d1, d2")); // white queen captures black queen
+			b.IsCheck.Should().BeFalse("Player 1's king should not be in check");
+			b.IsCheckmate.Should().BeFalse("Player 1's king should not be in checkmate");
+
+			b.UndoLastMove(); // black queen returns to previous state
+			b.PositionIsAttacked(Pos("d2"), 1).Should().BeTrue("Player 2's queen should be threatened by Player 1's queen (d1) and king (e1)");
+		}
+
+		[Fact]
+		public void QueenPossibleMoves2() {
+			ChessBoard cBoard = CreateBoardFromMoves(
+				"c2, c4",
 				"e7, e5",
+				"d1, b3", // white queen
+				"d8, f6", // black queen
+				"b1, c3", // white knight
+				"g7, g6",
 				"c4, c5",
-				"e5, e4",
-				"d1, c2",
-				"d7, d5"
+				"h7, h6",
+				"c5, c6",
+				"f8, b4" // black bishop
 			);
 
-			var possMoves = b.GetPossibleMoves();
-			var queenCaptureExpected = GetMovesAtPosition(possMoves, Pos("c2"));
-			b.GetPieceAtPosition(Pos("c2")).PieceType.ShouldBeEquivalentTo(ChessPieceType.Queen, "the queen was moved from d1 -> c2");
+			var possibleMoves = cBoard.GetPossibleMoves();
+			var whiteQueenPossibleMoves = GetMovesAtPosition(possibleMoves, Pos("b3"));
+			whiteQueenPossibleMoves.Should().HaveCount(9, " ..").
+				And.Contain(Move("b3, a3")).
+				And.Contain(Move("b3, a4")).
+				And.Contain(Move("b3, b4")).
+				And.Contain(Move("b3, c4")).
+				And.Contain(Move("b3, d5")).
+				And.Contain(Move("b3, e6")).
+				And.Contain(Move("b3, f7")).
+				And.Contain(Move("b3, c2")).
+				And.Contain(Move("b3, d1")).
 
-			queenCaptureExpected.Should().HaveCount(7, "queen can move diagonally in three different ways and vertically in one from c2")
-				.And.Contain(Move("c2, b3"))
-				.And.Contain(Move("c2, a4"))
-				.And.Contain(Move("c2, d3"))
-				.And.Contain(Move("c2, c3"))
-				.And.Contain(Move("c2, c4"))
-				.And.Contain(Move("c2, d1"))
-				.And.Contain(Move(Pos("c2"), Pos("e4"), ChessMoveType.Normal));
+				And.NotContain(Move("b3, b2")). // Forbidden move
+				And.NotContain(Move("b3, a2"))  // Forbidden move
+				;
+			// White queen makes a move
+			Apply(cBoard, "b3, b4");
 
-			// Apply the queen capture
-			Apply(b, Move(Pos("c2"), Pos("e4"), ChessMoveType.Normal));
-			var queen = b.GetPieceAtPosition(Pos("e4"));
-			queen.Player.Should().Be(1, "queen performed capture");
-			queen.PieceType.Should().Be(ChessPieceType.Queen, "queen performed capture");
-			b.CurrentAdvantage.Should().Be(Advantage(1, 1), "player 1 captured player 2's pawn with a queen");
+			possibleMoves = cBoard.GetPossibleMoves();
+			var blackQueenPossibleMoves = GetMovesAtPosition(possibleMoves, Pos("f6"));
+			blackQueenPossibleMoves.Should().HaveCount(12, "Total of possible moves for black queen should be 12").
+				And.Contain(Move("f6, e6")).
+				And.Contain(Move("f6, d6")).
+				And.Contain(Move("f6, c6")).
+				And.Contain(Move("f6, e7")).
+				And.Contain(Move("f6, d8")).
+				And.Contain(Move("f6, g7")).
+				And.Contain(Move("f6, g5")).
+				And.Contain(Move("f6, h4")).
+				And.Contain(Move("f6, f5")).
+				And.Contain(Move("f6, f4")).
+				And.Contain(Move("f6, f3")).
 
-			// Undo the move and check the board state
-			b.UndoLastMove();
-			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "queen capture was undone");
-			queen = b.GetPieceAtPosition(Pos("c2"));
-			queen.Player.Should().Be(1, "queen capture was undone");
-			queen.PieceType.Should().Be(ChessPieceType.Queen, "queen capture was undone");
-			var captured = b.GetPieceAtPosition(Pos("e4"));
-			captured.Player.Should().Be(2, "queen capture was undone");
-			var boardIntegrity = b.GetPieceAtPosition(Pos("c5"));
-			boardIntegrity.Player.Should().Be(1, "player 1 has a piece at e4");
-			boardIntegrity.PieceType.Should().Be(ChessPieceType.Pawn, "queen capture was undone");
-		}
-
-		//1st undo move checking Black Queen
-		[Fact]
-		public void undoBlackTest() {
-			ChessBoard b = CreateBoardFromMoves(
-				 "a2, a4",
-				 "h7, h5",
-				 "b1, c3",
-				 "d7, d5"
-			);
-			//White Move Next
-			var poss = b.GetPossibleMoves();
-			var expected = GetMovesAtPosition(poss, Pos("c3"));
-			expected.Should().Contain(Move("c3, b1"))
-				 .And.Contain(Move("c3, a2"))
-				 .And.Contain(Move("c3, b5"))
-				 .And.Contain(Move("c3, d5"))//haha
-				 .And.Contain(Move("c3, e4"))
-				 .And.HaveCount(5, "A White Knight has 5 possible move at this position" +
-				 "And one of them should be able to capture Black's Pawn");
-
-			b.CurrentAdvantage.Should().Be(Advantage(0, 0),
-				 "no operations have changed the advantage");
-			Apply(b, Move("c3, d5")); /// White Knight get the Pawn
-			b.CurrentAdvantage.Should().Be(Advantage(1, 1), "White's Knight captures Black's Pawn");
-			Apply(b, Move("c7, c6"));
-			Apply(b, Move("d5, e7"));
-			b.CurrentAdvantage.Should().Be(Advantage(1, 2), "White's Kinght captures Black's Pawn");
-			poss = b.GetPossibleMoves();
-			expected = GetMovesAtPosition(poss, Pos("d8"));
-			expected.Should().Contain(Move("d8, e7")) // Black Queen Captures White's Knight
-				.And.Contain(Move("d8, d2"))  // Black Queen Captures White's Pawns.
-				.And.HaveCount(10, "The Black Queen has 10 possible move at this position" +
-				"Black Queen Should be able to captures the White's Knight and Pawns");
-			b.UndoLastMove();
-			b.UndoLastMove();
-			poss = b.GetPossibleMoves();
-			expected = GetMovesAtPosition(poss, Pos("d8"));
-			//after the Undo, the Black Queen Only have 3 moves
-			expected.Should().Contain(Move("d8, d5")) // Black Queen Captures White Knight
-				.And.HaveCount(3, "The Black QUeen has 3 Possible moves" +
-				"And one of them should be able to capture Black's Pawn");
-			b.CurrentAdvantage.Should().Be(Advantage(1, 1), "Undo 1 Move White Player only captures 1 pawn");
-		}
-
-		[Fact]
-		public void undoWhiteTest() {
-			ChessBoard b = CreateBoardFromMoves(
-				 "h2, h3",
-				 "h7, h6",
-				 "h3, h4",
-				 "h6, h5"
-			);
-			//White Move Next
-			var poss = b.GetPossibleMoves();
-			var expected = GetMovesAtPosition(poss, Pos("h4"));
-			expected.Should().HaveCount(0, "A White Pawn at this location has no Possible Move");
-			expected = GetMovesAtPosition(poss, Pos("h1"));
-			expected.Should().HaveCount(2, "A White Rook at this location has 2 Possible Moves");
-			expected = GetMovesAtPosition(poss, Pos("g1"));
-			expected.Should().HaveCount(2, "A White Knight at this location has 2 Possible Moves");
-			b.UndoLastMove();
-			b.UndoLastMove();
-			poss = b.GetPossibleMoves();
-			expected = GetMovesAtPosition(poss, Pos("h3"));
-			expected.Should().HaveCount(1, "A White Pawn at this location has 1 Possible Move");
-			expected = GetMovesAtPosition(poss, Pos("h1"));
-			expected.Should().HaveCount(1, "A White Rook at this location has 1 Possible Move");
-			expected = GetMovesAtPosition(poss, Pos("g1"));
-			expected.Should().HaveCount(1, "A White Knight at this location has 1 Possible Moves");
-		}
-
-		/// <summary>
-		/// The purpose of this test is to test that the queen (who has a lot of moves usually)
-		/// gets only a few moves when his king is in check
-		/// </summary>
-		[Fact]
-		public void BlackQueenPossibleMovesOnCheck() {
-			ChessBoard b = CreateBoardFromPositions(
-				 Pos("d1"), ChessPieceType.King, 1,
-				 Pos("c1"), ChessPieceType.Queen, 1,
-				 Pos("e3"), ChessPieceType.Rook, 1,
-				 Pos("c2"), ChessPieceType.Pawn, 1,
-				 Pos("h8"), ChessPieceType.King, 2,
-				 Pos("c7"), ChessPieceType.Queen, 2
-			);
-			var possMoves = b.GetPossibleMoves();
-			var whiteQueenBlocked = GetMovesAtPosition(possMoves, Pos("c1"));
-			whiteQueenBlocked.Should().HaveCount(5, "Queen directions are a bit blocked by freindly pieces")
-				 .And.Contain(Move("c1, d2"))
-				 .And.Contain(Move("c1, b2"))
-				 .And.Contain(Move("c1, a3"))
-				 .And.Contain(Move("c1, a1"))
-				 .And.Contain(Move("c1, b1"));
-			Apply(b, "c1, a1");
-			possMoves = b.GetPossibleMoves();
-			var BlackQueenMoves = GetMovesAtPosition(possMoves, Pos("c7"));
-			BlackQueenMoves.Should().HaveCount(3, "Queen should protect king from check by queen in a1")
-				 .And.Contain(Move("c7, c3"))
-				 .And.Contain(Move("c7, e5"))
-				 .And.Contain(Move("c7, g7"));
-			Apply(b,
-				 "h8, h7",
-				 "c2, c3",
-				 "c7, c6",
-				 "a1, b1");
-			possMoves = b.GetPossibleMoves();
-			BlackQueenMoves = GetMovesAtPosition(possMoves, Pos("c6"));
-			BlackQueenMoves.Should().HaveCount(2, "Queen should protect king from check by queen in b1")
-				 .And.Contain(Move("c6, e4"))
-				 .And.Contain(Move("c6, g6"));
-		}
-
-		/* 
-		2. On the black side, 3 pawns are moved:
-		c7 to c6, d7 to d5, and e7 to e6
-		Black queen is tested to see if there are 9 possible moves
-		*/
-		[Fact]
-		public void CountBlackQueenMovesWith3PawnsOutOfWay() {
-			//start with moving black pawns in front of queen
-			ChessBoard board = CreateBoardFromMoves(
-				"e2,e3",
-				"c7, c6",
-				"a2,a3",
-				"d7, d5",
-				"b2,b3",
-				"e7, e6",
-				"d2,d3");
-			var possMoves = board.GetPossibleMoves();
-			var blackQueenNoMovesExpected = GetMovesAtPosition(possMoves, Pos("d8")); //initial moves for black queen
-			blackQueenNoMovesExpected.Should().HaveCount(9,
-			"the black queen should have 9 moves with pawns in c6, d5, and e6").And.Contain(Move("d8, h4"));
+				And.NotContain(Move("f6, f7")). // Forbidden move
+				And.NotContain(Move("f6, g6")). // Forbidden move
+				And.NotContain(Move("f6, e5"))  // Forbidden move
+				;
 		}
 	}
 }

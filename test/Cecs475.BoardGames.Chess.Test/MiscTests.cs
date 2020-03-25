@@ -10,6 +10,90 @@ using Cecs475.BoardGames.Model;
 namespace Cecs475.BoardGames.Chess.Test {
 	public class MiscTests : ChessTest {
 		/// <summary>
+		/// The piece shielding the King cannot be moved
+		/// </summary>
+		[Fact]
+		public void AbsolutePin() {
+			ChessBoard b = CreateBoardFromMoves(
+				"a2, a4",
+				"e7, e5",
+				"a4, a5"
+			);
+
+			//Move black's Queen to pin pawn
+			Apply(b, "d8, h4");
+
+			var possMoves = b.GetPossibleMoves();
+			var pinnedExpected = GetMovesAtPosition(possMoves, Pos("f2"));
+			pinnedExpected.Should().BeEmpty("the pawn cannot move and leave the King in check");
+		}
+
+		/// <summary>
+		/// Check queen advantage
+		/// </summary>
+		[Fact]
+		public void QueenAdvantage() {
+			ChessBoard b = CreateBoardFromMoves(
+				"d2, d4",
+				"e7, e5",
+				"d4, e5",
+				"e8, e7",
+				"d1, d7",
+				"d8, d7"
+				);
+
+			b.CurrentAdvantage.Should().Be(Advantage(2, 7), "Black has taken a queen and lost two pawns");
+			b.UndoLastMove();
+			b.CurrentAdvantage.Should().Be(Advantage(1, 2), "White is two pawns up");
+		}
+		
+		/// <summary>
+		/// Check bishop advantage
+		/// </summary>
+		[Fact]
+		public void BishopAdvantage() {
+			ChessBoard b = CreateBoardFromMoves(
+				"e2, e4",
+				"b7, b6",
+				"f1, e2",
+				"c8, a6",
+				"e4, e5",
+				"a6, e2"
+				);
+
+			b.CurrentAdvantage.Should().Be(Advantage(2, 3), "Black is a bishop up");
+			b.UndoLastMove();
+			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "No pieces have been taken");
+		}
+
+		[Fact]
+		//Testing DrawCounter
+		public void DrawCounterTest2() {
+			ChessBoard b = CreateBoardFromMoves(
+				"b2, b4",
+				"g8, f6"
+			);
+
+			b.DrawCounter.Should().Be(1, "black knight was moved");
+			Apply(b, "b1, c3");
+			b.DrawCounter.Should().Be(2, "white knight was moved");
+			Apply(b, "b8, c6");
+			b.DrawCounter.Should().Be(3, "black knight was moved");
+
+			Apply(b, "c3, d5");
+			b.DrawCounter.Should().Be(4, "white knight was moved");
+			Apply(b, "f6, d5"); //Capture white knight
+			b.DrawCounter.Should().Be(0, "black knight captured white knight");
+
+			Apply(b, "g1, f3");
+			b.DrawCounter.Should().Be(1, "white knight was moved");
+			Apply(b, "d5, f4");
+			b.DrawCounter.Should().Be(2, "black knight was moved");
+			Apply(b, "e2, e4");
+			b.DrawCounter.Should().Be(0, "white pawn was moved");
+		}
+
+		/// <summary>
 		/// Test the method GetPossibleMoves()
 		/// </summary>
 		[Fact]
@@ -120,7 +204,7 @@ namespace Cecs475.BoardGames.Chess.Test {
 
 			// Test undoing when the list of undo move should be empty
 			b.Invoking(y => y.UndoLastMove())
-			  .ShouldThrow<InvalidOperationException>("Undoing a move when there is no more move to undo should be illegal");
+			  .Should().Throw<InvalidOperationException>("Undoing a move when there is no more move to undo should be illegal");
 
 			// Checking position of the pawns after multiple undoing moves
 			b.PositionIsEmpty(Pos("b3")).Should().BeTrue("previous piece position should contain piece again after undo a move");
@@ -130,7 +214,7 @@ namespace Cecs475.BoardGames.Chess.Test {
 
 			// trying to play when it's not the player turn after undoing move
 			b.Invoking(y => Apply(b, "a7, a6"))
-			  .ShouldThrow<InvalidOperationException>("Moving a pawn when its not player's turn after undoing move should be illegal");
+			  .Should().Throw<InvalidOperationException>("Moving a pawn when its not player's turn after undoing move should be illegal");
 		}
 
 		///<summary>

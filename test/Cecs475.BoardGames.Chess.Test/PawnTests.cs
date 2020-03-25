@@ -5,1041 +5,412 @@ using FluentAssertions;
 using Cecs475.BoardGames.Chess.Model;
 using Xunit;
 using Cecs475.BoardGames.Model;
+using System.Linq;
 
 namespace Cecs475.BoardGames.Chess.Test {
 	public class PawnTests : ChessTest {
 		/// <summary>
-		/// Moving pawns one or two spaces.
+		/// Tests that an en passant is possible (white side)
 		/// </summary>
-		[Fact]
-		public void PawnTwoSpaceMove() {
-			ChessBoard b = new ChessBoard();
-
-			var possMoves = b.GetPossibleMoves();
-			// Each of the pawns in rank 2 should have two move options.
-			foreach (var pos in GetPositionsInRank(2)) {
-				var movesAtPos = GetMovesAtPosition(possMoves, pos);
-				movesAtPos.Should().HaveCount(2)
-					.And.BeEquivalentTo(
-						Move(pos, pos.Translate(-1, 0)),
-						Move(pos, pos.Translate(-2, 0))
-				);
-			}
-			Apply(b, "a2, a3"); // one space move
-
-			// Same, but for pawns in rank 7
-			possMoves = b.GetPossibleMoves();
-			foreach (var pos in GetPositionsInRank(7)) {
-				var movesAtPos = GetMovesAtPosition(possMoves, pos);
-				movesAtPos.Should().HaveCount(2)
-					.And.BeEquivalentTo(
-						Move(pos, pos.Translate(1, 0)),
-						Move(pos, pos.Translate(2, 0))
-					);
-			}
-			Apply(b, "a7, a5"); // player 2 response
-
-			possMoves = b.GetPossibleMoves();
-			var oneMoveExpected = GetMovesAtPosition(possMoves, Pos("a3"));
-			oneMoveExpected.Should().Contain(Move("a3, a4"))
-				.And.HaveCount(1, "a pawn not in its original rank can only move one space forward");
-
-			var twoMovesExpected = GetMovesAtPosition(possMoves, Pos("b2"));
-			twoMovesExpected.Should().Contain(Move("b2, b3"))
-				.And.Contain(Move("b2, b4"))
-				.And.HaveCount(2, "a pawn in its original rank can move up to two spaces forward");
-		}
-
-		[Fact]
-		public void PawnTwoSpaceMove_IfUnblocked() {
-			// Move a pawn from each side to in front of the other's starting pawns.
-			ChessBoard b = CreateBoardFromMoves(
-				"a2, a4",
-				"b7, b5",
-				"a4, a5",
-				"b5, b4",
-				"a5, a6",
-				"b4, b3"
-			);
-
-			var possMoves = b.GetPossibleMoves();
-			var blockedPawn = GetMovesAtPosition(possMoves, Pos("b2"));
-			blockedPawn.Should().BeEmpty("The pawn at b2 is blocked by the enemy at b3");
-			Apply(b, Move("c2, c4"));
-
-			possMoves = b.GetPossibleMoves();
-			blockedPawn = GetMovesAtPosition(possMoves, Pos("a7"));
-			blockedPawn.Should().BeEmpty("The pawn at a7 is blocked by the enemy at a6");
-		}
-
-		/// <summary>
-		/// A pawn cannot make a two space movement if it is on the enemy's starting rank.
-		/// </summary>
-		[Fact]
-		public void PawnTwoSpaceMove_DirectionMatters() {
-			ChessBoard b = CreateBoardFromMoves(
-				"a2, a4",
-				"b7, b5",
-				"a4, b5",
-				"b8, a6",
-				"b5, b6",
-				"h7, h5",
-				"b6, b7",
-				"h5, h4"
-			);
-			var possMoves = b.GetPossibleMoves();
-			var oneMove = GetMovesAtPosition(possMoves, Pos("b7"));
-			// The pawn at b7 should have 12 possible moves: 4 promotion moves each, for a move forward,
-			// and two capturing moves diagonally.
-			oneMove.Should().HaveCount(12)
-				.And.NotContain(Move("b7, b9"))
-				.And.OnlyContain(m => m.MoveType == ChessMoveType.PawnPromote,
-					"the pawn at b7 should have 12 possible moves, all of which are pawn promotions.");
-		}
-
-		/// <summary>
-		/// Pawn diagonal capture.
-		/// </summary>
-		[Fact]
-		public void PawnCapture() {
-			ChessBoard b = CreateBoardFromMoves(
-				"a2, a4",
-				"b7, b5"
-			);
-
-			var poss = b.GetPossibleMoves();
-			var expected = GetMovesAtPosition(poss, Pos("a4"));
-			expected.Should().Contain(Move("a4, b5"))
-				.And.Contain(Move("a4, a5"))
-				.And.HaveCount(2, "a pawn can capture diagonally ahead or move forward");
-
-			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "no operations have changed the advantage");
-
-			Apply(b, Move("a4, b5"));
-			b.GetPieceAtPosition(Pos("b5")).Player.Should().Be(1, "Player 1 captured Player 2's pawn diagonally");
-			b.CurrentAdvantage.Should().Be(Advantage(1, 1), "Black lost a single pawn of 1 value");
-
-			b.UndoLastMove();
-			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "after undoing the pawn capture, advantage is neutral");
-		}
-
-		/// <summary>
-		/// Pawn capture even if it can't move forward.
-		/// </summary>
-		[Fact]
-		public void PawnCapture_EvenIfBlocked() {
-			ChessBoard b = CreateBoardFromMoves(
-				"a2, a4",
-				"h7, h5",
-				"a4, a5",
-				"h5, h4",
-				"a5, a6",
-				"h4, h3"
-			);
-
-			var possMoves = b.GetPossibleMoves();
-			var threeMoves = GetMovesAtPosition(possMoves, Pos("a6"));
-			threeMoves.Should().HaveCount(1, "the pawn at a6 should be able to capture to b7 even if it can't move forward")
-				.And.BeEquivalentTo(Move("a6, b7"));
-		}
-
-		/// <summary>
-		/// Pawn can't capture backwards.
-		/// </summary>
-		[Fact]
-		public void PawnCapture_NoBackwardsCapture() {
-			ChessBoard b = CreateBoardFromMoves(
-				"a2, a4",
-				"b7, b5",
-				"a4, a5",
-				"c7, c6",
-				"a5, a6"
-			);
-
-			var possMoves = b.GetPossibleMoves();
-			GetMovesAtPosition(possMoves, Pos("b5")).Should().HaveCount(1, "pawn at b5 cannot capture backwards to a6")
-				.And.Contain(Move("b5, b4"));
-		}
-
-		/// <summary>
-		/// Pawns cannot capture diagonally off the board, wrapping to another row.
-		/// </summary>
-		[Fact]
-		public void PawnBorderCapture() {
-			ChessBoard b = CreateBoardFromMoves(
-				Move("a2, a4"),
-				Move("h7, h5")
-			);
-
-			var possMoves = b.GetPossibleMoves();
-			var forwardOnly = GetMovesAtPosition(possMoves, Pos("a4"));
-			forwardOnly.Should().HaveCount(1)
-				.And.Contain(Move("a4, a5"));
-
-			Apply(b, Move("b2, b4"));
-			possMoves = b.GetPossibleMoves();
-			forwardOnly = GetMovesAtPosition(possMoves, Pos("h5"));
-			forwardOnly.Should().HaveCount(1, "pawn at h5 can move forward but can't capture to a4")
-				.And.Contain(Move("h5, h4"));
-		}
-
-		/// <summary>
-		/// Promote a pawn after reaching the final rank.
-		/// </summary>
-		[Fact]
-		public void PawnPromoteTest() {
-			ChessBoard b = CreateBoardFromMoves(
-				"b2, b4",
-				"a7, a5",
-				"b4, b5",
-				"a8, a6",
-				"b5, a6", // capture rook with pawn
-				"b8, c6",
-				"a6, a7",
-				"c6, d4"
-			);
-			b.CurrentAdvantage.Should().Be(Advantage(1, 5), "a Black rook was captured");
-
-			// Make sure all possible moves are marked PawnPromote.
-			var possMoves = b.GetPossibleMoves();
-			var pawnMoves = GetMovesAtPosition(possMoves, Pos("a7"));
-			pawnMoves.Should().HaveCount(4, "there are four possible promotion moves")
-				.And.OnlyContain(m => m.MoveType == ChessMoveType.PawnPromote);
-
-			// Apply the promotion move
-			Apply(b, Move("(a7, a8, Queen)"));
-			b.GetPieceAtPosition(Pos("a8")).PieceType.Should().Be(ChessPieceType.Queen, "the pawn was replaced by a queen");
-			b.GetPieceAtPosition(Pos("a8")).Player.Should().Be(1, "the queen is controlled by player 1");
-			b.CurrentPlayer.Should().Be(2, "choosing the pawn promotion should change the current player");
-			b.CurrentAdvantage.Should().Be(Advantage(1, 13), "gained 9 points, lost 1 point from queen promotion");
-
-			b.UndoLastMove();
-			b.CurrentPlayer.Should().Be(1, "undoing a pawn promotion should change the current player");
-			b.CurrentAdvantage.Should().Be(Advantage(1, 5), "lose value of queen when undoing promotion");
-		}
-
-		/// <summary>
-		/// Promote a pawn to rook, move the rook, ensure that castling is still allowed.
-		/// </summary>
-		[Fact]
-		public void PawnPromote_Castling() {
-			ChessBoard b = CreateBoardFromMoves(
-				"b2, b4",
-				"a7, a5",
-				"b4, b5",
-				"a8, a6",
-				"b5, a6", // capture rook with pawn
-				"b8, c6",
-				"a6, a7",
-				"c6, d4"
-			);
-			b.CurrentAdvantage.Should().Be(Advantage(1, 5), "a Black rook was captured");
-
-			// Apply the promotion move
-			Apply(b, Move("(a7, a8, Rook)"));
-			b.GetPieceAtPosition(Pos("a8")).PieceType.Should().Be(ChessPieceType.Rook, "the pawn was replaced by a rook");
-			b.GetPieceAtPosition(Pos("a8")).Player.Should().Be(1, "the rook is controlled by player 1");
-
-			Apply(b,
-				"h7, h6",
-				"a8, b8", // move promoted rook
-				"h6, h5",
-				"b1, a3", // move white pieces out of the way for castling
-				"h5, h4",
-				"c1, b2",
-				"h4, h3",
-				"c2, c3",
-				"g7, g6",
-				"d1, c2",
-				"g6, g5"
-			);
-
-			var possMoves = b.GetPossibleMoves();
-			var forKing = GetMovesAtPosition(possMoves, Pos("e1"));
-			forKing.Should().HaveCount(2, "king at e1 can castle queenside even after a pawn-promoted rook has moved")
-				.And.BeEquivalentTo(Move("e1, d1"), Move("e1, c1"));
-		}
-
-		/// <summary>
-		/// Promote a pawn and produce check.
-		/// </summary>
-		[Fact]
-		public void PawnPromote_IntoCheckmate() {
-			ChessBoard b = CreateBoardFromMoves(
-				"b2, b4",
-				"a7, a5",
-				"b4, b5",
-				"a8, a6",
-				"b5, a6", // capture rook with pawn
-				"b8, c6",
-				"a6, a7",
-				"b7, b5",
-				"c2, c3",
-				"c8, b7",
-				"c3, c4",
-				"d7, d6",
-				"c4, c5",
-				"d8, d7"
-			);
-
-			// Apply the promotion move
-			Apply(b, Move("(a7, a8, Rook)"));
-			b.GetPieceAtPosition(Pos("a8")).PieceType.Should().Be(ChessPieceType.Rook, "the pawn was replaced by a rook");
-			b.GetPieceAtPosition(Pos("a8")).Player.Should().Be(1, "the rook is controlled by player 1");
-			b.IsCheck.Should().BeTrue("the king is threatened by the pawn-promoted rook at a8");
-			b.IsCheckmate.Should().BeFalse("the king has an escape");
-		}
-
 		[Fact]
 		public void EnPassantTest() {
 			ChessBoard b = CreateBoardFromMoves(
-				"a2, a4",
-				"h7, h5",
-				"a4, a5"
+			"d2, d4",   //white pawn forward 2
+			"a7, a6",   //random move
+			"d4, d5",   //white pawn forward 1
+			"e7, e5"    //black pawn forward 2
 			);
-
-			// Move pawn forward twice, enabling en passant from a5
-			Apply(b, "b7, b5");
-			
 			var possMoves = b.GetPossibleMoves();
-			var enPassantExpected = GetMovesAtPosition(possMoves, Pos("a5"));
-			enPassantExpected.Should().HaveCount(2, "pawn can move forward one or en passant")
-				.And.Contain(Move("a5, a6"))
-				.And.Contain(Move(Pos("a5"), Pos("b6"), ChessMoveType.EnPassant));
+			var enPassantExpected = GetMovesAtPosition(possMoves, Pos("d5"));
+			//Checks if the white pawn has two possible moves:
+			//forward one or an en passant
+			enPassantExpected.Should().HaveCount(2, "white pawn can move forward one or en passant")
+				 .And.Contain(Move("d5, d6"))
+				 .And.Contain(Move(Pos("d5"), Pos("e6"), ChessMoveType.EnPassant));
+		}
+
+		/// <summary>
+		/// Perform an En Passant move from the white side. Make sure all conditions are met for the conditions to perform the move and the pawn is in the
+		/// correct position after the move
+		/// </summary>
+		[Fact]
+		public void checkEnPassant() {
+			ChessBoard board = new ChessBoard();
+			Apply(board, Move(Pos("d2"), Pos("d4")));
+			Apply(board, Move(Pos("a7"), Pos("a5")));
+			Apply(board, Move(Pos("d4"), Pos("d5")));
+			Apply(board, Move("h7, h5"));
+			Apply(board, Move(Pos("b2"), Pos("b4")));
+			Apply(board, Move("h5, h4"));
+			Apply(board, Move("b4, b5"));
+			Apply(board, Move(Pos("e7"), Pos("e5")));
+			var moves = board.GetPossibleMoves();
+			var pMove = GetMovesAtPosition(moves, Pos("d5"));
+			var pMove2 = GetMovesAtPosition(moves, Pos("b5"));
+			pMove.Should().HaveCount(2, "2 moves. One forward, and one diagonal due to en passant possible move");
+			pMove2.Should().HaveCount(1, "Only able to move forward because en passant conditions are not fulfilled");
+			Apply(board, Move(Pos("d5"), Pos("e6"), ChessMoveType.EnPassant));
+			board.GetPieceAtPosition(Pos("e6")).PieceType.Should().Be(ChessPieceType.Pawn, "Pawn has moved diagonally to the right");
+			board.GetPieceAtPosition(Pos("e5")).PieceType.Should().Be(ChessPieceType.Empty, "There is no pawn on e5 since it was taken");
+		}
+
+		/// <summary>
+		/// Take a pawn piece from a position in the board. Verify taken pawn is properly registered. Test primarily the black pawns on the board
+		/// </summary>
+		[Fact]
+		public void checkTaken() {
+			ChessBoard board = CreateBoardFromMoves("d2, d4", "e7, e5");
+			Apply(board, Move(Pos("d4"), Pos("e5")));
+			board.GetPieceAtPosition(Pos("d4")).PieceType.Should().Be(ChessPieceType.Empty, "No chess piece at d4 since pawn was moved");
+			board.GetPlayerAtPosition(Pos("e5")).Should().Be(1, "First player pawn should be at position e5 since pawn was taken");
+			board.UndoLastMove();
+			board.GetPieceAtPosition(Pos("d4")).PieceType.Should().Be(ChessPieceType.Pawn, "White pawn should be back at position since last move was undone");
+			board.GetPlayerAtPosition(Pos("e5")).Should().Be(2, "Second player pawn should be at position e5 since previous move was undone");
+			Apply(board, Move(Pos("f2"), Pos("f4")));
+			Apply(board, Move(Pos("e5"), Pos("f4")));
+			board.GetPlayerAtPosition(Pos("f4")).Should().Be(2, "Black pawn took white pawn");
+			board.GetPieceAtPosition(Pos("e5")).PieceType.Should().Be(ChessPieceType.Empty, "There should be no chess piece in previous position");
+		}
+
+		/// <summary>
+		/// Promote a White pawn to queen.
+		/// </summary>
+		[Fact]
+		public void PawnPromotion_WhitePawnToQueen() {
+			ChessBoard b = CreateBoardFromMoves(
+				"a2, a4",
+				"b7, b5",
+				"a4, b5", //capture black pawn with white pawn
+				"b8, c6",
+				"b5, b6",
+				"c6, b4",
+				"b6, b7",
+				"b4, d5"
+			);
+			Apply(b, Move("(b7, b8, Queen"));
+			b.GetPieceAtPosition(Pos("b8")).PieceType.Should().Be(ChessPieceType.Queen, "Rhe pawn was replaced by a queen");
+			b.GetPieceAtPosition(Pos("b8")).Player.Should().Be(1, "the queen is controlled by player 1");
+		}
+
+		/// <summary>
+		/// En passant test for black pawn to capture white pawn
+		/// </summary>
+		[Fact]
+		public void EnPassantTest_BlackPawnCaptureWhitePawn() {
+			ChessBoard b = CreateBoardFromMoves(
+				"h2, h3",
+				"b7, b5",
+				"h3, h4",
+				"b5, b4"
+			);
+			// Move white pawn forward twice, enabling en passant from black pawn from b4
+			Apply(b, "a2, a4");
+
+			var possMoves = b.GetPossibleMoves();
+			var enPassantExpected = GetMovesAtPosition(possMoves, Pos("b4"));
+			enPassantExpected.Should().HaveCount(2, "Black pawn can move forward one or en passant")
+				.And.Contain(Move("b4, b3"))
+				.And.Contain(Move(Pos("b4"), Pos("a3"), ChessMoveType.EnPassant));
 
 			// Apply the en passant
-			Apply(b, Move(Pos("a5"), Pos("b6"), ChessMoveType.EnPassant));
-			var pawn = b.GetPieceAtPosition(Pos("b6"));
-			pawn.Player.Should().Be(1, "pawn performed en passant move");
+			Apply(b, Move(Pos("b4"), Pos("a3"), ChessMoveType.EnPassant));
+			var pawn = b.GetPieceAtPosition(Pos("a3"));
+			pawn.Player.Should().Be(2, "Pawn performed en passant move");
 			pawn.PieceType.Should().Be(ChessPieceType.Pawn);
-			var captured = b.GetPieceAtPosition(Pos("b5"));
-			captured.Player.Should().Be(0, "the pawn that moved to b5 was captured by en passant");
-			b.CurrentAdvantage.Should().Be(Advantage(1, 1));
+			var captured = b.GetPieceAtPosition(Pos("a4"));
+			captured.Player.Should().Be(0, "Rhe pawn that moved to b5 was captured by en passant");
+			b.CurrentAdvantage.Should().Be(Advantage(2, 1));
+		}
+
+
+		// Move white pawn to end of board to promote it to queen
+		// Capture black pawn and bishop on the way
+		[Fact]
+		public void whitePawnPromotionAndAdvantage() {
+			ChessBoard cb = CreateBoardFromMoves(
+				"e2, e4",
+				"d7, d5",
+				"e4, d5",
+				"d8, d6",
+				"d2, d3",
+				"d6, c5",
+				"d5, d6",
+				"c7, c6",
+				"d6, d7",
+				"e8, d8"
+			);
+
+			Apply(cb, Move("(d7, c8, Queen)"));
+			cb.GetPieceAtPosition(Pos("c8")).PieceType.Should().Be(ChessPieceType.Queen, "the pawn was replaced by a queen");
+			cb.GetPieceAtPosition(Pos("c8")).Player.Should().Be(1, "the queen is controlled by player 1");
+			cb.CurrentAdvantage.Should().Be(Advantage(1, 12), "a black pawn and bishop were captured," +
+				" while white gained a queen");
+		}
+
+		[Fact]
+		public void boardStateAfterThreeSinglePawnMoves() {
+			ChessBoard cb = CreateBoardFromMoves(
+				"e2, e3",
+				"d7, d6",
+				"h2, h3"
+			);
+
+			cb.CurrentPlayer.Should().Be(2, "it should be black's turn after 3 moves.");
+			var possMoves = cb.GetPossibleMoves();
+			possMoves.Should().HaveCount(27, "there should be 27 possible moves for the black player.");
+			possMoves.Should().Contain(Move("e8, d7"), "the black king should be able to move south-west");
+			possMoves.Should().NotContain(Move("d8, d6"), "black queen should not be able to move to d6 since pawn is there");
+		}
+		/// <summary>
+		/// Test an En Passant for a black pawn and Undo Move
+		/// </summary>
+		[Fact]
+		public void BlackEnPassantTestAndUndo() {
+			ChessBoard b = CreateBoardFromMoves(
+					 "b1, a3",
+					 "e7, e5",
+					 "a3, b5",
+					 "e5, e4"
+			);
+
+			// Move pawn forward twice, enabling en passant from e4
+			Apply(b, "d2, d4");
+
+			var possible = b.GetPossibleMoves();
+			var enPassantExpected = GetMovesAtPosition(possible, Pos("e4"));
+			enPassantExpected.Should().HaveCount(2, "pawn can move forward one or en passant")
+				.And.Contain(Move("e4, e3"))
+				.And.Contain(Move(Pos("e4"), Pos("d3"), ChessMoveType.EnPassant));
+
+			// Apply the en passant
+			Apply(b, Move(Pos("e4"), Pos("d3"), ChessMoveType.EnPassant));
+			var pawn = b.GetPieceAtPosition(Pos("d3"));
+			pawn.Player.Should().Be(2, "pawn performed en passant move");
+			pawn.PieceType.Should().Be(ChessPieceType.Pawn, "The piece type should be a pawn");
+			var captured = b.GetPieceAtPosition(Pos("d4"));
+			captured.Player.Should().Be(0, "the pawn that moved to d4 was captured by en passant");
+			b.CurrentAdvantage.Should().Be(Advantage(2, 1), "Black took white pawn of value 1");
 
 			// Undo the move and check the board state
 			b.UndoLastMove();
-			b.CurrentAdvantage.Should().Be(Advantage(0, 0));
-			pawn = b.GetPieceAtPosition(Pos("a5"));
-			pawn.Player.Should().Be(1);
-			captured = b.GetPieceAtPosition(Pos("b5"));
-			captured.Player.Should().Be(2);
-			var empty = b.GetPieceAtPosition(Pos("b6"));
-			empty.Player.Should().Be(0);
-		}
-
-
-		// STUDENT TESTS
-		/// <summary>
-		/// Tests events when Black Pawn Captures Unmoved Rook or Bishop and
-		/// Promotes to Queen at same time
-		/// </summary>
-		[Fact]
-		public void BlackPawnCaptureAndPromotionTest() {
-			List<Tuple<BoardPosition, ChessPiece>> startingPositions = new List<Tuple<BoardPosition, ChessPiece>>();
-
-			// White Positions
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(7, 5), new ChessPiece(ChessPieceType.Bishop, 1)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(7, 6), new ChessPiece(ChessPieceType.Knight, 1)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(7, 7), new ChessPiece(ChessPieceType.Rook, 1)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(7, 4), new ChessPiece(ChessPieceType.King, 1)));
-
-			// Black Positions
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(0, 4), new ChessPiece(ChessPieceType.King, 2)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(6, 6), new ChessPiece(ChessPieceType.Pawn, 2)));
-
-			ChessBoard b = new ChessBoard(startingPositions);
-
-			Apply(b, Move("e1, d1"));
-
-			var possMoves = b.GetPossibleMoves();
-
-			var pawnMoves = GetMovesAtPosition(possMoves, Pos("g2"));
-
-			pawnMoves.Should().Contain(Move("g2, h1, Rook"), "Pawn takes Rook (h1) and promotes to Rook")
-					  .And.Contain(Move("g2, h1, Bishop"), "Pawn takes Rook (h1) and promotes to Bishop")
-					  .And.Contain(Move("g2, h1, Knight"), "Pawn takes Rook (h1) and promotes to Knight")
-					  .And.Contain(Move("g2, h1, Queen"), "Pawn takes Rook (h1) and promotes to Queen")
-					  .And.Contain(Move("g2, f1, Rook"), "Pawn takes Bishop (f1) and promotes to Rook")
-					  .And.Contain(Move("g2, f1, Bishop"), "Pawn takes Bishop (f1) and promotes to Bishop")
-					  .And.Contain(Move("g2, f1, Knight"), "Pawn takes Bishop (f1) and promotes to Knight")
-					  .And.Contain(Move("g2, f1, Queen"), "Pawn takes Bishop (f1) and promotes to Queen")
-					  .And.OnlyContain(m => m.MoveType == ChessMoveType.PawnPromote, "All Possible Pawn Moves should be promotion only")
-					  .And.HaveCount(8, "a pawn can capture the Rook diagonally or Bishop diagonally as well as be promoted 4 different types for each possible capture");
-
-			b.CurrentAdvantage.Should().Be(Advantage(1, 10), "White should be leading with Bishop, Knight and Rook - Black's Pawn");
-
-			Apply(b, Move("(g2, h1, Queen"));
-
-			b.GetPieceAtPosition(Pos("h1")).PieceType.Should().Be(ChessPieceType.Queen, "Pawn should promote to Queen");
-
-			b.CurrentAdvantage.Should().Be(Advantage(2, 3), "Advantage shifts to Player 2 after defeating Rook and promoting pawn to Queen");
-		}
-
-		/// <summary>
-		/// Performing and undoing Black's Pawn Promotion to and from Queen
-		/// </summary>
-		[Fact]
-		public void BlackPawnUndoPromotion() {
-			List<Tuple<BoardPosition, ChessPiece>> startingPositions = new List<Tuple<BoardPosition, ChessPiece>>();
-
-			// White Positions
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(7, 2), new ChessPiece(ChessPieceType.King, 1)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(7, 4), new ChessPiece(ChessPieceType.Rook, 1)));
-
-			// Black Positions
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(0, 4), new ChessPiece(ChessPieceType.King, 2)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(6, 6), new ChessPiece(ChessPieceType.Pawn, 2)));
-
-			ChessBoard b = new ChessBoard(startingPositions);
-
-			Apply(b, Move("e1, d1")); // Change turn to Black
-			Apply(b, Move("(g2, g1, Queen)")); // Pawn promotion to Queen
-
-			b.CurrentAdvantage.Should().Be(Advantage(2, 4), "Advantage shifts to Black Player for promoting to Queen");
-
-			// Undos Black promotion from Pawn to Queen
-			b.UndoLastMove();
-
-			b.CurrentAdvantage.Should().Be(Advantage(1, 4), "Advantage shifts back to White when Promotion is undone");
+			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "The advantage should be reset after undo");
+			pawn = b.GetPieceAtPosition(Pos("e4"));
+			pawn.Player.Should().Be(2, "Pawn should belong to player 2, black");
+			captured = b.GetPieceAtPosition(Pos("d4"));
+			captured.Player.Should().Be(1, "Originally captured piece should belong to player 1, white");
+			var empty = b.GetPieceAtPosition(Pos("d3"));
+			empty.Player.Should().Be(0, "there should be no piece at d3, should be empty");
 		}
 
 		[Fact]
-		public void BlackEnPassant() {
+		//This test will check for an enpassant
+		public void CheckPassant() {
 			ChessBoard board = CreateBoardFromMoves(
 				"d2, d4",
-				"h7, h6",
-				"d4, d5",
-				"e7, e5",
-				"d5, e6"
-			);
-			board.GetPieceAtPosition(Pos("e6")).PieceType.Should().Be(ChessPieceType.Pawn, "White's pawn at position e6");
-			board.GetPieceAtPosition(Pos("e5")).PieceType.Should().Be(ChessPieceType.Empty, "Black's pawn taken at position e5");
-			board.GetPieceAtPosition(Pos("e6")).Player.Should().Be(1, "Player 1 captured Player 2's pawn diagonally");
-			board.CurrentAdvantage.Should().Be(Advantage(1, 1), "Black lost a single pawn of 1 value");
+				"h7, h5",
+				"d4, d5");
+
+			Apply(board, "e7, e5");
+
+			Apply(board, Move(Pos("d5"), Pos("e6"), ChessMoveType.EnPassant));
+			var wPlayerPawn = board.GetPieceAtPosition(Pos("e6"));
+			wPlayerPawn.Player.Should().Be(1, "This should be white's piece");
+			wPlayerPawn.PieceType.Should().Be(ChessPieceType.Pawn, "This should be a pawn");
+
+			var bPlayerPawn = board.GetPieceAtPosition(Pos("e5"));
+			bPlayerPawn.Player.Should().Be(0, "This should be black's piece");
+			bPlayerPawn.PieceType.Should().Be(0, "This should be captured");
 		}
 
+
+		//<summary>
+		//Test involving "tricky" situation 
+		//Create a case wherein pawn can perform en passant on a black pawn whilst being blocked by a 
+		//black pawn in front of it (WITH WHITE)
+		//</summary>
 		[Fact]
-		public void BlackUndo() {
-			ChessBoard board = CreateBoardFromMoves(
+		public void MyEnPassantTest() {
+			ChessBoard b = CreateBoardFromMoves(
+				"d2, d4",
+				"d7, d5",
 				"e2, e4",
-				"e7, e5",
-				"g1, f3",
-				"b8, c6",
-				"d2, d4",
+				"e7, e6"
+				);
+
+			Apply(b, "e4, e5", "f7, f5");
+
+			var possibleMoves = b.GetPossibleMoves();
+			var enPassant = GetMovesAtPosition(possibleMoves, Pos("e5"));
+			enPassant.Should().HaveCount(1, "pawn at e5 can en passant, capturing pawn at f5")
+			.And.Contain(Move(Pos("e5"), Pos("f6"), ChessMoveType.EnPassant));
+
+			Apply(b, Move(Pos("e5"), Pos("f6"), ChessMoveType.EnPassant));
+			var capturing = b.GetPieceAtPosition(Pos("f6"));
+			capturing.Player.Should().Be(1, "white pawn performed en passant move");
+			capturing.PieceType.Should().Be(ChessPieceType.Pawn, "white pawn catured black pawn");
+			var captured = b.GetPieceAtPosition(Pos("f5"));
+			captured.Player.Should().Be(0, "black pawn that moved to f5 was captured by en passant");
+			b.CurrentAdvantage.Should().Be(Advantage(1, 1), "Black lost a pawn due to en passant ");
+		}
+
+		/// <summary>
+		/// Check pawn promotion with two diagonals
+		/// </summary>
+		[Fact]
+		public void PawnPromotionWithDiagonals() {
+			ChessBoard b = CreateBoardFromMoves(
+				"f2, f4",
+				"g7, g5",
+				"f4, g5",
+				"b7, b6",
+				"g5, g6",
 				"g8, f6",
-				"d4, e5",
-				"g7, g6",
-				"e5, f6"
-			);
+				"g6, g7",
+				"a7, a6"
+				);
 
-			board.GetPieceAtPosition(Pos("f6")).PieceType.Should().Be(ChessPieceType.Pawn, "White's pawn took Black's Knight");
-			board.GetPieceAtPosition(Pos("f6")).Player.Should().Be(1, "The pawn at f6 belongs to White");
-			board.CurrentAdvantage.Should().Be(Advantage(1, 4), "White has a one knight plus a one pawn advantage advantage");
-
-			board.UndoLastMove();
-
-			board.GetPieceAtPosition(Pos("f6")).PieceType.Should().Be(ChessPieceType.Knight, "Black's knight is back at position f6");
-			board.GetPieceAtPosition(Pos("f6")).Player.Should().Be(2, "The knight at f6 belongs to Black");
-			board.CurrentAdvantage.Should().Be(Advantage(1, 1), "White has a one pawn advantage on the board");
-		}
-
-		[Fact]
-		public void UndoPromotionShouldReturnPawn() {
-			ChessBoard b = CreateBoardFromPositions(
-			Pos("a2"), ChessPieceType.Pawn, 2,//black
-			Pos("e1"), ChessPieceType.King, 1,//white
-			Pos("e8"), ChessPieceType.King, 2//black
-			);
-			Apply(b, "e1, e2");
-			Apply(b, "a2, a1, Queen");
-			b.UndoLastMove();
-			b.GetPieceAtPosition(Pos("a2")).PieceType.Should().Be(ChessPieceType.Pawn, "the piece should revert to being a Pawn after undoing the move. ");
-		}
-
-		[Fact]
-		public void EnPassantUndo() {
-			ChessBoard b = new ChessBoard();
-			b.ApplyMove(Move(Pos("a2"), Pos("a4")));
-			b.UndoLastMove();
 			var possMoves = b.GetPossibleMoves();
-			var enPassantExpected = GetMovesAtPosition(possMoves, Pos("a2"));
-			enPassantExpected.Should().HaveCount(2, "pawn can move forward one or en passant even if you undo enpassant once")
-				 .And.Contain(Move("a2, a3"))
-				 .And.Contain(Move(Pos("a2"), Pos("a4"), ChessMoveType.EnPassant));
-		}
+			var movesAtPos = GetMovesAtPosition(possMoves, Pos("g7"));
 
-		/// <summary>
-		/// Test Tricky Moves
-		/// </summary>
-
-		[Fact]
-		public void TestTrickyMovePawnPromotion() {
-			ChessBoard b = CreateBoardFromPositions(
-				 Pos("a1"), ChessPieceType.King, 1,
-				 Pos("h8"), ChessPieceType.King, 2,
-				 Pos("b7"), ChessPieceType.Pawn, 1,
-				 Pos("c2"), ChessPieceType.Pawn, 2
-			);
-
-			b.GetPieceAtPosition(Pos("b7")).ShouldBeEquivalentTo(new ChessPiece(ChessPieceType.Pawn, 1), "Position b7 should be a Pawn for player 1");
-			Apply(b, Move("(b7, b8, Queen)"));
-			b.GetPieceAtPosition(Pos("b8")).ShouldBeEquivalentTo(new ChessPiece(ChessPieceType.Queen, 1), "Position b8 should be a Queen for player 1");
-
-		}
-
-		/// <summary>
-		/// Undo and redo EnPassant
-		/// </summary>
-		[Fact]
-		public void EnPassantUndoAndRedo() {
-			ChessBoard b = CreateBoardFromMoves(
-				 "b2, b4",
-				 "f7, f5",
-				 "b4, b5",
-				 "a7, a5"
-			);
-			b.GetPieceAtPosition(Pos("b5")).ShouldBeEquivalentTo(new ChessPiece(ChessPieceType.Pawn, 1), "Position b5 should be a Pawn for player 1");
-			b.GetPieceAtPosition(Pos("a5")).ShouldBeEquivalentTo(new ChessPiece(ChessPieceType.Pawn, 2), "Position a5 should be a Pawn for player 2");
-			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "Black has a current advantage 0");
-
-			// Do EnPassant
-			Apply(b, Move("b5, a6"));
-
-			b.GetPieceAtPosition(Pos("a6")).ShouldBeEquivalentTo(new ChessPiece(ChessPieceType.Pawn, 1), "Position a6 should be a Pawn for player 1 after EnPassant");
-			b.CurrentAdvantage.Should().Be(Advantage(1, 1), "Black lost a single pawn of 1 value");
-
-			// Undo EnPassant
-			b.UndoLastMove();
-
-			b.GetPieceAtPosition(Pos("b5")).ShouldBeEquivalentTo(new ChessPiece(ChessPieceType.Pawn, 1), "Position b5 should be a Pawn for player 1");
-			b.GetPieceAtPosition(Pos("a5")).ShouldBeEquivalentTo(new ChessPiece(ChessPieceType.Pawn, 2), "Position a5 should be a Pawn for player 2");
-			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "Black returned back to current advantage of 0");
-
-			// Redo EnPassant
-			Apply(b, Move("b5, a6"));
-			b.GetPieceAtPosition(Pos("a6")).ShouldBeEquivalentTo(new ChessPiece(ChessPieceType.Pawn, 1), "Position a6 should be a Pawn for player 1 after redo EnPassant");
-			b.CurrentAdvantage.Should().Be(Advantage(1, 1), "Black lost a single pawn of 1 value again");
+			movesAtPos.Should().HaveCount(12, "Pawn can move forward and promote or diagonal to promote")
+				.And.OnlyContain(m => m.MoveType == ChessMoveType.PawnPromote, "the only moves available are PawnPromote moves");
 		}
 
 		[Fact]
-		public void PromotePawnToRook() {
-			ChessBoard b = CreateBoardFromMoves(
-				 "a2, a4",
-				 "b7, b5",
-				 "a1, a3",
-				 "b5, a4",
-				 "a3, b3",
-				 "a4, a3",
-				 "b3, b4",
-				 "a3, a2",
-				 "b4, b5"
-			);
-			Apply(b, Move("a2, a1, Rook"));
-
-			b.GetPieceAtPosition(Pos("a1")).PieceType.Should().Be(ChessPieceType.Rook, "pawn should promote to Rook");
-
-		}
-
-		/// <summary>
-		/// The test check when is en passant move is valid
-		/// Test : - "Tricky" test with En Passant Test
-		/// Player: - Black,White
-		/// Result: - En passant is only possible if the pawn being captured moved two sqaures forward in it's recent turn. Or else,
-		/// it is not possible
-		/// </summary>
-		[Fact]
-		public void EnPassantTest2() {
-			ChessBoard board = CreateBoardFromMoves(
-				 "h2,h4",
-				 "b7,b5",
-				 "h4,h5",
-				 "b5,b4",
-				 "a2,a4",
-				 "g7,g5");
-
-			var possibleMoves = board.GetPossibleMoves();
-			var whitePawnPassant = GetMovesAtPosition(possibleMoves, Pos("h5"));
-
-			whitePawnPassant.Should().Contain(Move(Pos("h5"), Pos("g6"), ChessMoveType.EnPassant), "The white pawn should be able to " +
-				 "capture black pawn at g5");
-
-			//Apply the en passant move
-			Apply(board, Move(Pos("h5"), Pos("g6"), ChessMoveType.EnPassant));
-
-			var emptySquare = board.GetPieceAtPosition(Pos("g5"));
-			emptySquare.Player.Should().Be(0, "The black pawn previously at g5 should be captured.");
-
-			possibleMoves = board.GetPossibleMoves();
-			var blackPawnPassant = GetMovesAtPosition(possibleMoves, Pos("b4"));
-
-			blackPawnPassant.Should().NotContain(Move(Pos("b4"), Pos("a3"), ChessMoveType.EnPassant), "The black pawn cannot capture the" +
-				 "white pawn with en passant rule because the move was made by white two moves ago.");
-
-		}
-
-		[Fact]
-		public void PerformEnPassantOnlyOnFirstChance() {
-			ChessBoard b = CreateBoardFromMoves(
-				 "a2, a4",
-				 "h7, h6",
-				 "a4, a5",
-				 "b7, b5"
-			);
-
-			//check for pawn an at a5
-			//should have two moves
-			var poss = b.GetPossibleMoves();
-			var expected = GetMovesAtPosition(poss, Pos("a5"));
-			expected.Should().Contain(Move("a5, a6"))
-				 .And.Contain(Move("a5, b6"))
-				 .And.HaveCount(2, "a pawn can only move forward one space after its first move, "
-									  + "and can only capture pieces diagonal infront of it "
-									  + "but can perform en passant on a pawn if its on its fifth rank");
-
-			Apply(b, Move("b2, b3"));
-			Apply(b, Move("g7, g6"));
-
-			poss = b.GetPossibleMoves();
-			expected = GetMovesAtPosition(poss, Pos("a5"));
-			expected.Should().Contain(Move("a5, a6"))
-				 .And.HaveCount(1, "En Passant can only be performed directly after the opponent "
-									  + "moved his pawn two spaces from its starting position");
-
-		}
-
-		/// <summary>
-		/// At least 2 tests must involve Undo Last Move.
-		/// </summary>
-		[Fact]
-		public void undoEnPassant() {
-			ChessBoard b = CreateBoardFromMoves(
-				 "a2, a4",
-				 "a7, a6",
-				 "a4, a5",
-				 "b7, b5"
-			);
-
-			var poss = b.GetPossibleMoves();
-			var expected = GetMovesAtPosition(poss, Pos("a5"));
-			expected.Should().Contain(Move("a5, b6"))
-				 .And.HaveCount(1, "a pawn can capture an enemy pawn on its fifth rank "
-									  + "if it had just performed a space jump");
-
-			Apply(b, Move("a5, b6"));
-
-			b.UndoLastMove();
-			b.UndoLastMove();
-
-			Apply(b, Move("b7, b5"));
-
-			poss = b.GetPossibleMoves();
-			expected = GetMovesAtPosition(poss, Pos("a5"));
-			expected.Should().Contain(Move("a5, b6"))
-				 .And.HaveCount(1, "a pawn can capture an enemy pawn on its fifth rank "
-									  + "if it had just performed a space jump, even if the moves were reset");
-		}
-
-		/// <summary>
-		/// Testing enpassant
-		/// </summary>
-		[Fact]
-		public void EnPassant() {
+		//Testing pawn promotion
+		public void PawnPromotionTest() {
 			ChessBoard b = CreateBoardFromMoves(
 				"c2, c4",
-				"f7, f6",
-				"c4, c5",
-				"d7, d5"
-			);
-
-			var possMoves = b.GetPossibleMoves();
-			var enPassantExpected = GetMovesAtPosition(possMoves, Pos("c5"));
-			enPassantExpected.Should().HaveCount(2, "pawn can move forward one space or capture en passant")
-				.And.Contain(Move("c5, c6"))
-				.And.Contain(Move(Pos("c5"), Pos("d6"), ChessMoveType.EnPassant));
-
-			// Apply the en passant
-			Apply(b, Move(Pos("c5"), Pos("d6"), ChessMoveType.EnPassant));
-			var pawn = b.GetPieceAtPosition(Pos("d6"));
-			pawn.Player.Should().Be(1, "pawn performed en passant move");
-			pawn.PieceType.Should().Be(ChessPieceType.Pawn, "pawn performed en passant move");
-			var captured = b.GetPieceAtPosition(Pos("d5"));
-			captured.Player.Should().Be(0, "the pawn that moved to b5 was captured by en passant");
-			captured.PieceType.Should().Be(ChessPieceType.Empty, "the pawn that moved to b5 was captured by en passant");
-			b.CurrentAdvantage.Should().Be(Advantage(1, 1), "player 1 captured player 2's pawn by en passant");
-
-			// Undo the move and check the board state
-			b.UndoLastMove();
-			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "en passant move was undone");
-			pawn = b.GetPieceAtPosition(Pos("c5"));
-			pawn.Player.Should().Be(1, "en passant move was undone");
-			captured = b.GetPieceAtPosition(Pos("d5"));
-			captured.Player.Should().Be(2, "en passant move was undone");
-			var empty = b.GetPieceAtPosition(Pos("d6"));
-			empty.Player.Should().Be(0, "neither player has a piece at d6");
-			empty.PieceType.Should().Be(ChessPieceType.Empty, "en passant move was undone");
-		}
-
-		/// <summary>
-		/// Very simple undo after one move
-		/// </summary>
-		[Fact]
-		public void CheckSimpleUndo() {
-			ChessBoard b = new ChessBoard();
-			var pieces = GetAllPiecesForPlayer(b, 1);
-			var possMoves = b.GetPossibleMoves();
-			Apply(b, "a2, a3"); // one space move from p1
-			b.PositionIsEmpty(Pos("a2")).Should().BeTrue("previous piece position should be empty after a move");
-			b.PositionIsEmpty(Pos("a3")).Should().BeFalse("new piece position on board should contain the moved piece");
-			b.UndoLastMove();
-			b.PositionIsEmpty(Pos("a3")).Should().BeTrue("previous piece position should contain piece again after undo a move");
-			b.PositionIsEmpty(Pos("a2")).Should().BeFalse("new piece position on board should not contain the moved piece anymore after an undo");
-		}
-
-		/// <summary>
-		/// Check pawn promotion to a queen + En Passant move
-		/// </summary>
-		[Fact]
-		public void CheckPawnPromotionAndEnPassant() {
-			ChessBoard b = new ChessBoard();
-
-			Apply(b, "a2, a4"); // Move p1's pawn
-			Apply(b, "b7, b5"); // Move p2's pawn
-			Apply(b, "a4, b5"); // Take p2's pawn with p1's pawn
-
-			Apply(b, "c7, c5"); // Move p2's pawn to make a en passant situation
-			var pawnMoves = GetMovesAtPosition(b.GetPossibleMoves(), Pos("b5")); // Check if possible move en passant
-			pawnMoves.Should().HaveCount(2, "there is only 2 possible moves for p1's pawn at this stage of game (en passant).").And.Contain(m => m.MoveType == ChessMoveType.EnPassant);
-			Apply(b, "b5, c6");
-			b.PositionIsEmpty(Pos("c5")).Should().BeTrue("En Passant from p1's pawn should have take the p2's pawn");
-			b.PositionIsEmpty(Pos("c6")).Should().BeFalse("p1's pawn should be here after En Passant's move");
-
-			Apply(b, "c8, b7"); // Move p2's bishop
-			pawnMoves = GetMovesAtPosition(b.GetPossibleMoves(), Pos("c6"));
-			pawnMoves.Should().HaveCount(3, "there is only 3 possible moves for p1's pawn at this stage of game.").And.Contain(m => m.MoveType == ChessMoveType.Normal);
-			Apply(b, "c6, c7");
-			Apply(b, "h7, h5");
-
-			pawnMoves = GetMovesAtPosition(b.GetPossibleMoves(), Pos("c7"));
-			pawnMoves.Should().HaveCount(12, "there is only 12 possible moves for p1's pawn at this stage of game.").And.Contain(m => m.MoveType == ChessMoveType.PawnPromote);
-			// Apply the promotion move
-			Apply(b, Move("(c7, c8, Queen)"));
-			b.GetPieceAtPosition(Pos("c8")).PieceType.ShouldBeEquivalentTo(ChessPieceType.Queen, "p1's pawn should have been promoted to queen");
-		}
-
-		/// <summary>
-		/// White performs En Passant on Black, advantage is checked,
-		/// the move is undone and the advantage is checked again.
-		/// </summary>
-		[Fact]
-		public void UndoEnPassantAdvantage() {
-			ChessBoard b = CreateBoardFromMoves(
-				 ("d2, d4"),
-				 ("g7, g6"),
-				 ("d4, d5"),
-				 ("e7, e5")
-			);
-
-			Apply(b, Move("d5, e6"));
-			b.CurrentAdvantage.Should().Be(Advantage(1, 1), "white performed en passant and gained a one point advantage");
-			b.UndoLastMove();
-			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "neither player has an advantage after en passant was undone");
-		}
-
-		/// <summary>
-		/// Black pawn gets promoted to bishop, the move is undone,
-		/// black pawn reapplies promotion, but promotes to queen this time
-		/// </summary>
-		[Fact]
-		public void PawnPromotionUndoAndSwap() {
-			ChessBoard b = CreateBoardFromPositions(
-				 Pos("e1"), ChessPieceType.King, 1,
-				 Pos("e8"), ChessPieceType.King, 2,
-				 Pos("c2"), ChessPieceType.Pawn, 2,
-				 Pos("f2"), ChessPieceType.Pawn, 1
-			);
-
-			Apply(b, Move("f2, f3"), Move("c2, c1, bishop"));
-			b.GetPieceAtPosition(Pos("c1")).PieceType.Should().Be(ChessPieceType.Bishop, "piece should be a bishop after pawn promotion");
-			b.UndoLastMove();
-			Apply(b, Move("c2, c1, queen"));
-			b.GetPieceAtPosition(Pos("c1")).PieceType.Should().Be(ChessPieceType.Queen, "piece should be a queen after pawn promotion");
-			b.IsCheck.Should().Be(true, "white's king is in check");
-		}
-
-		/// <summary>
-		/// The purpose of this test is to test promotion
-		/// and if you can undo/redo it many times 
-		/// while keeping a correct game advantage
-		/// </summary>
-		[Fact]
-		public void PromotionUndoRedo() {
-			ChessBoard b = CreateBoardFromPositions(
-				 Pos("e1"), ChessPieceType.King, 1,
-				 Pos("a2"), ChessPieceType.Knight, 1,
-				 Pos("h7"), ChessPieceType.Pawn, 1,
-				 Pos("e8"), ChessPieceType.King, 2,
-				 Pos("g8"), ChessPieceType.Knight, 2,
-				 Pos("a7"), ChessPieceType.Pawn, 2
-			);
-			var possMoves = b.GetPossibleMoves();
-			var pawnToPromote = GetMovesAtPosition(possMoves, Pos("h7"));
-			pawnToPromote.Should().HaveCount(8, "pawn can promote 2 times to 4 different pieces")
-				 .And.NotContain(Move("h7, h9"))
-				 .And.NotContain(Move("h7, i8"))
-				 .And.OnlyContain(m => m.MoveType == ChessMoveType.PawnPromote,
-					  "the only possible moves should be promotions");
-			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "no advantage yet");
-
-
-			Apply(b, "h7, h8, Rook");
-			b.GetPieceAtPosition(Pos("h8")).PieceType.Should().Be(ChessPieceType.Rook, "Pawn should have promoted to Rook in h8");
-			b.GetPieceAtPosition(Pos("h7")).PieceType.Should().Be(ChessPieceType.Empty, "Pawn should have been removed in h7");
-			b.CurrentAdvantage.Should().Be(Advantage(1, 4), "-1 Pawn +5 Rook = +4 advantage");
-			b.UndoLastMove();
-			b.GetPieceAtPosition(Pos("h8")).PieceType.Should().Be(ChessPieceType.Empty, "undo the promotion to rook");
-			b.GetPieceAtPosition(Pos("h7")).PieceType.Should().Be(ChessPieceType.Pawn, "get back the pawn in h7");
-			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "advantage should be back to 0");
-
-			Apply(b, "h7, g8, Queen");
-			b.GetPieceAtPosition(Pos("g8")).PieceType.Should().Be(ChessPieceType.Queen, "Pawn should have promoted to Queen in g8");
-			b.GetPieceAtPosition(Pos("h7")).PieceType.Should().Be(ChessPieceType.Empty, "Pawn should have been removed in h7");
-			b.CurrentAdvantage.Should().Be(Advantage(1, 11), "-1 Pawn +9 Queen -3 Knight = +11 advantage");
-			b.UndoLastMove();
-			b.GetPieceAtPosition(Pos("g8")).PieceType.Should().Be(ChessPieceType.Knight, "undo pawn take knight and promote so get back a knight");
-			b.GetPieceAtPosition(Pos("h7")).PieceType.Should().Be(ChessPieceType.Pawn, "get back the pawn in h7");
-			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "advantage should be back to 0");
-		}
-
-		/// <summary>
-		/// The purpose of this test is to test that you can take en passant and the 
-		/// undo restore the taken pawn at the good place
-		/// </summary>
-		[Fact]
-		public void WhiteEnPassantPlusUndo() {
-			ChessBoard b = CreateBoardFromPositions(
-				 Pos("e1"), ChessPieceType.King, 1,
-				 Pos("d1"), ChessPieceType.Queen, 1,
-				 Pos("d5"), ChessPieceType.Pawn, 1,
-				 Pos("e8"), ChessPieceType.King, 2,
-				 Pos("d8"), ChessPieceType.Queen, 2,
-				 Pos("e7"), ChessPieceType.Pawn, 2
-			);
-			Apply(b,
-				 "d1, c1",
-				 "e7, e5");
-			var possMoves = b.GetPossibleMoves();
-			var enPassantPawn = GetMovesAtPosition(possMoves, Pos("d5"));
-			enPassantPawn.Should().HaveCount(2, "pawn can move forward to d6 or en passant to e6")
-				 .And.Contain(Move("d5, d6"))
-				 .And.Contain(Move(Pos("d5"), Pos("e6"), ChessMoveType.EnPassant));
-			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "no advantage yet");
-			Apply(b, "d5, e6");
-			b.GetPieceAtPosition(Pos("e6")).PieceType.Should().Be(ChessPieceType.Pawn, "Pawn should be at e6");
-			b.GetPieceAtPosition(Pos("e5")).PieceType.Should().Be(ChessPieceType.Empty, "Should be empty due to en passant");
-			b.CurrentAdvantage.Should().Be(Advantage(1, 1), "Lose value of Pawn by en passant");
-			b.UndoLastMove();
-			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "Undo move so advantage should back to 0");
-			b.GetPieceAtPosition(Pos("d5")).PieceType.Should().Be(ChessPieceType.Pawn, "Pawn should be back to d5 after undo");
-			b.GetPieceAtPosition(Pos("e5")).PieceType.Should().Be(ChessPieceType.Pawn, "Pawn should be back to e5 after undo");
-		}
-
-		/// <summary>
-		/// The purpose of this test is to test that you can only take en passant when
-		/// the ennemy pawn just moved and not the next turn
-		/// </summary>
-		[Fact]
-		public void WhiteEnPassantTooLate() {
-			ChessBoard b = CreateBoardFromPositions(
-				 Pos("e1"), ChessPieceType.King, 1,
-				 Pos("d4"), ChessPieceType.Pawn, 1,
-				 Pos("e8"), ChessPieceType.King, 2,
-				 Pos("e7"), ChessPieceType.Pawn, 2
-			);
-
-			Apply(b,
-				 "d4, d5",
-				 "e7, e5");
-			var possMoves = b.GetPossibleMoves();
-			var enPassantPawn = GetMovesAtPosition(possMoves, Pos("d5"));
-			enPassantPawn.Should().HaveCount(2, "pawn can move forward to d6 or en passant to e6")
-				 .And.Contain(Move("d5, d6"))
-				 .And.Contain(Move(Pos("d5"), Pos("e6"), ChessMoveType.EnPassant));
-			Apply(b,
-				 "e1, f1",
-				 "e8, f8");
-			possMoves = b.GetPossibleMoves();
-			enPassantPawn = GetMovesAtPosition(possMoves, Pos("d5"));
-			enPassantPawn.Should().HaveCount(1, "pawn can only move forward too late to en passant")
-				 .And.Contain(Move("d5, d6"));
-		}
-
-		/// <summary>
-		/// The purpose of this test is to test that you can't take en passant if it leaves your king in check
-		/// </summary>
-		[Fact]
-		public void BlackImpossibleEnPassantToCheck() {
-			ChessBoard b = CreateBoardFromPositions(
-				 Pos("g1"), ChessPieceType.King, 1,
-				 Pos("g2"), ChessPieceType.Pawn, 1,
-				 Pos("h1"), ChessPieceType.Rook, 1,
-				 Pos("g8"), ChessPieceType.King, 2,
-				 Pos("h4"), ChessPieceType.Pawn, 2
-			);
-			Apply(b,
-				 "g2, g4");
-			var possMoves = b.GetPossibleMoves();
-			var enPassantPawn = GetMovesAtPosition(possMoves, Pos("h4"));
-			enPassantPawn.Should().HaveCount(2, "pawn can move forward to h3 or en passant to g3")
-				 .And.Contain(Move("h4, h3"))
-				 .And.Contain(Move(Pos("h4"), Pos("g3"), ChessMoveType.EnPassant));
-			b.UndoLastMove();
-			Apply(b,
-				 "g1, f1",
-				 "g8, h8",
-				 "g2, g4");
-			possMoves = b.GetPossibleMoves();
-			enPassantPawn = GetMovesAtPosition(possMoves, Pos("h4"));
-			enPassantPawn.Should().HaveCount(1, "en passant is illegal since it would let king in check")
-				 .And.Contain(Move("h4, h3"));
-		}
-
-		///<summary>
-		/// Promotes a white pawn to a queen
-		///</summary>
-		[Fact]
-		public void WhitePawnPromotion() {
-			ChessBoard cb = CreateBoardFromPositions(
-				 Pos(1, 4), ChessPieceType.Pawn, 1,  //white pawn to promote
-				 Pos(2, 2), ChessPieceType.Knight, 2,
-				 Pos(2, 6), ChessPieceType.King, 2,
-				 Pos(6, 4), ChessPieceType.King, 1);
-
-			// Make sure all possible moves are marked PawnPromote.
-			var possMoves = cb.GetPossibleMoves();
-			var pawnMoves = GetMovesAtPosition(possMoves, Pos(1, 4));
-			pawnMoves.Should().HaveCount(4, "there are four possible promotion moves")
-				 .And.OnlyContain(m => m.MoveType == ChessMoveType.PawnPromote);
-
-			// Apply the promotion move
-			Apply(cb, Move("(e7, e8, Queen)"));
-			cb.GetPieceAtPosition(Pos(0, 4)).PieceType.Should().Be(ChessPieceType.Queen, "P1 Pawn is now a Queen");
-			cb.GetPieceAtPosition(Pos(0, 4)).Player.Should().Be(1, "Current Queen: P1");
-			cb.CurrentPlayer.Should().Be(2, "Switch to P2 after Pawn Promotion");
-
-			cb.UndoLastMove();
-			cb.CurrentPlayer.Should().Be(1, "Change to P1");
-		}
-
-		/// <summary>
-		/// Pawn move forward 2 spaces, undo it, check if it can move forward 2 spaces
-		/// </summary>
-		[Fact]
-		public void UndoFirstPawn() {
-			ChessBoard b = CreateBoardFromMoves(
-				 "a2, a4"
-			);
-			//Check Black Pawn's possible moves
-			var possMoves = b.GetPossibleMoves();
-			var forPawn = GetMovesAtPosition(possMoves, Pos("f7"));
-			forPawn.Should().HaveCount(2, "Black Pawn can move forward 1 or 2 squares")
-				 .And.BeEquivalentTo(Move("f7, f6"), Move("f7, f5"));
-
-			//Move Black Pawn forward
-			Apply(b, "f7, f5");
-			var pawn = b.GetPieceAtPosition(Pos("f5"));
-			pawn.Player.Should().Be(2, "Black pawn move forward 2 spaces");
-			pawn.PieceType.Should().Be(ChessPieceType.Pawn);
-
-			//Undo Last Move
-			b.UndoLastMove();
-			pawn = b.GetPieceAtPosition(Pos("f7"));
-			pawn.Player.Should().Be(2, "Black pawn return to original spot");
-			pawn.PieceType.Should().Be(ChessPieceType.Pawn);
-
-			//Check Black Pawn's possible moves again
-			forPawn.Should().HaveCount(2, "Black Pawn can move forward 1 or 2 squares")
-				 .And.BeEquivalentTo(Move("f7, f6"), Move("f7, f5"));
-		}
-
-		[Fact]
-		public void CheckEnPassat() {
-			ChessBoard b = CreateBoardFromMoves(
-					"d2, d4",
-					"g7, g5",
-					"d4, d5");
-
-			Apply(b, "e7, e5");
-			// white is doing the enpassat
-			var possMoves = b.GetPossibleMoves();
-
-			var whitePawn = GetMovesAtPosition(possMoves, Pos("d5"));
-
-			whitePawn.Should().Contain(Move(Pos("d5"), Pos("e6"), ChessMoveType.EnPassant))
-			.And.Contain(Move("d5, d6")).And.HaveCount(2, "White Left pawn should have 2 possible moves; forward and an EnPassant");
-
-			Apply(b, "f2, f4");
-			Apply(b, "f7, f5");
-
-			possMoves = b.GetPossibleMoves();
-			whitePawn = GetMovesAtPosition(possMoves, Pos("d5"));
-
-			whitePawn.Should().Contain(Move("d5, d6")).
-			And.HaveCount(1, "White Left pawn should have 1 possible moves after not going through with the EnPassant");
-		}
-
-		[Fact]
-		public void RedoPromotion() {
-			ChessBoard b = CreateBoardFromPositions(
-						 Pos("h2"), ChessPieceType.Pawn, 2,
-						 Pos("g2"), ChessPieceType.Pawn, 1,
-						 Pos("b6"), ChessPieceType.King, 2,
-						 Pos("g4"), ChessPieceType.King, 1
-					);
-
-			// White moves
-			Apply(b, "g2, g3");
-
-			// Promotes a black pawn to a queen
-			Apply(b, Move("(h2, h1, Queen)"));
-
-			b.GetPieceAtPosition(Pos("h1")).PieceType.Should().Be(ChessPieceType.Queen, "The pawn was promoted to a Queen");
-			b.UndoLastMove();
-
-			// Undo the promotion so that the new queen is back to a pawn
-			b.GetPieceAtPosition(Pos("h2")).PieceType.Should().Be(ChessPieceType.Pawn, "The pawn was demoted back to a pawn");
-
-			// Have a promotion from pawn to bishop 
-			Apply(b, Move("(h2, h1, Bishop)"));
-			b.GetPieceAtPosition(Pos("h1")).PieceType.Should().Be(ChessPieceType.Bishop, "The pawn was promoted to a Bishop instead");
-		}
-
-		/*
-		5. Check for En Passant
-		*/
-		[Fact]
-		public void EnPassantCheck() {
-			ChessBoard board = CreateBoardFromMoves(
+				"h7, h5",
+				"h2, h4",
+				"a7, a5",
+				"d1, a4",
+				"a8, a6",
+				"a4, a5", //Capture black pawn
+				"a6, h6",
+				"a5, c7", //Capture black pawn
+				"d7, d5",
 				"a2, a4",
+				"d5, c4", //Capture white pawn
+				"a4, a5",
+				"c4, c3",
+				"a5, a6",
 				"e7, e5",
-				"b2, b3",
-				"e5, e4",
-				"d2, d4" //en passant situation
+				"a6, a7",
+				"h6, d6"
+			);
+			//Check for pawn promotion moves
+			var possMoves = b.GetPossibleMoves();
+			var pawnMoves = GetMovesAtPosition(possMoves, Pos("a7"));
+			pawnMoves.Should().HaveCount(8, "there are eight possible promotion moves")
+				.And.OnlyContain(m => m.MoveType == ChessMoveType.PawnPromote);
+
+			//Apply promotion move
+			Apply(b, Move("(a7, a8, Queen)"));
+			b.GetPositionsOfPiece(ChessPieceType.Queen, 1).Should().Contain(Pos("a8"), "pawn promoted to queen");
+			b.CurrentPlayer.Should().Be(2, "white just promoted pawn, black's turn");
+		}
+
+
+		[Fact]
+		//Test case for an en passant move
+		public void EnPassantMove() {
+			//Create a board with en passant move option
+			ChessBoard b = CreateBoardFromMoves(
+				"d2, d4",
+				"b7, b6",
+				"d4, d5",
+				"e7, e5"
 			);
 
-			//Check number of moves in pawn at e4
-			var possMoves = board.GetPossibleMoves();
-			var expectedMovesForPawn = GetMovesAtPosition(possMoves, Pos("e4"));
-			expectedMovesForPawn.Should().HaveCount(2, "pawn at e4 can move to d3 for capture or e4")
-			.And.Contain(Move(Pos("e4"), Pos("d3"), ChessMoveType.EnPassant)).And.Contain(Move("e4, e3"));
+			//Check for possible en passant move
+			var posMoves = b.GetPossibleMoves();
+			var enPassant = GetMovesAtPosition(posMoves, Pos("d5"));
+			enPassant.Should().Contain(Move("d5, e6"))
+				.And.HaveCount(2, "a pawn can move diagonal to capture enemy pawn if that had just moved two spaces or move up one space")
+				.And.Contain(Move(Pos("d5"), Pos("e6"), ChessMoveType.EnPassant));
 
-			//Apply EnPassant
-			Apply(board, Move(Pos("e4"), Pos("d3"), ChessMoveType.EnPassant));
+			//Apply the en passant move
+			Apply(b, "d5, e6");
+			b.GetPieceAtPosition(Pos("e5")).PieceType.Should().Be(ChessPieceType.Empty, "the pawn was captured by en passant move");
+			b.GetPieceAtPosition(Pos("e5")).Player.Should().Be(0, "empty position, should not have any player");
+			b.GetPieceAtPosition(Pos("e6")).Player.Should().Be(1, "pawn performed en passant move");
+			b.CurrentAdvantage.Should().Be(Advantage(1, 1), "the player captured a pawn");
 
-			//d4 and e4 should be empty
-			board.PositionIsEmpty(Pos("e4")).Should().BeTrue("the pawn e4 moved to d3 by en passant");
-			board.PositionIsEmpty(Pos("d4")).Should().BeTrue("the pawn at d4 was captured");
-			board.PositionIsEmpty(Pos("d3")).Should().BeFalse("the pawn moved from e4 to d3 after en passant move");
-			board.CurrentAdvantage.Should().Be(Advantage(2, 1), "black got 1 point for capturing the pawn");
+			//Undo the en passant move and check if the pawn is restored
+			b.UndoLastMove();
+			b.GetPieceAtPosition(Pos("e5")).PieceType.Should().Be(ChessPieceType.Pawn, "the pawn that was captured by en passant move should have been restored");
+			b.GetPieceAtPosition(Pos("e5")).Player.Should().Be(2, "pawn was restored");
+			b.GetPieceAtPosition(Pos("e6")).Player.Should().Be(0, "pawn returned to original location");
+			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "the pawn was restored");
+		}
+
+		/// <summary>
+		/// Tests a pawn being promoted to a queen. Tests black pawn.
+		/// </summary>
+		[Fact]
+		public void PawnBeingPromoted() {
+			ChessBoard b = CreateBoardFromMoves(
+				"f2, f4",
+				"g7, g5",
+				"h2, h4",
+				"g5, g4",
+				"h1, h3",
+				"g4, h3", // captures white rook with pawn black
+				"g1, f3", //moves white knight 
+				"h3, h2",
+				"g2, g4"
+			);
+
+			Apply(b, Move("(h2, h1, Queen)"));
+			b.GetPieceAtPosition(Pos("h1")).PieceType.Should().Be(ChessPieceType.Queen, "The Black Pawn should be a Black Queen");
+			b.GetPieceAtPosition(Pos("h1")).Player.Should().Be(2, "The Queen should be controlled by player 2 (Black)");
+		}
+		[Fact]
+		public void pawnCount() {
+			ChessBoard board = new ChessBoard();
+
+			IEnumerable<BoardPosition> list = board.GetPositionsOfPiece(ChessPieceType.Pawn, 1);
+			list.Should().HaveCount(8, "This test makes sure the board begins with the right amount of pawns");
+		}
+		/// <summary>
+		/// TestEnPassantScenario
+		/// Test special pawn move in which it can only occur immediately after a pawn makes a
+		/// move of two squares from its starting square, and it could have been captured 
+		/// by an enemy pawn had it advanced only one position.
+		/// </summary>
+		[Fact]
+		public void EnPassantScenario() {
+			ChessBoard cBoard = CreateBoardFromMoves(
+				"a2, a4", // white pawn's first move = two positions
+				"h7, h5", // black pawn's first move = two positions
+				"a4, a5",
+				"h5, h4",
+				"g2, g4" // white pawn's first move = two positions
+				);
+
+			// White Player Test
+			var blackPawnMoves = GetMovesAtPosition(cBoard.GetPossibleMoves(), Pos("h4"));
+			blackPawnMoves.Should().Contain(Move(Pos("h4"), Pos("g3"), ChessMoveType.EnPassant), "black player pawn can catch white player pawn at g4");
+
+			// Proceed with the En Passant Move, capturing and relocating according to En Passant rules
+			Apply(cBoard, Move(Pos("h4"), Pos("g3"), ChessMoveType.EnPassant));
+
+			// Black player pawn has been captured so g4 should be empty
+			cBoard.GetPieceAtPosition(Pos("g4")).Player.Should().Be(0, "Enemy pawn has been captured which means that this position is empty");
+
+			// Black Player Test
+			Apply(cBoard, "d2, d3");
+			Apply(cBoard, "b7, b5");  // black pawn's first move = two positions
+
+			var whitePawnMoves = GetMovesAtPosition(cBoard.GetPossibleMoves(), Pos("a5"));
+			whitePawnMoves.Should().Contain(Move(Pos("a5"), Pos("b6"), ChessMoveType.EnPassant), "white player pawn can catch black player pawn at b6");
+
+			// Proceed with the En Passant Move, capturing and relocating according to En Passant rules
+			Apply(cBoard, Move(Pos("a5"), Pos("b6"), ChessMoveType.EnPassant));
+
+			// Black player pawn has been captured so b5 should be empty
+			cBoard.GetPieceAtPosition(Pos("b5")).Player.Should().Be(0, "Enemy pawn has been captured which means that this position is empty");
 		}
 	}
 }

@@ -16,7 +16,8 @@ namespace Cecs475.BoardGames.Chess.Model {
 
 		public const int BoardSize = 8;
 
-		// TODO: create bitboards for each player's pieces. Use the ulong type.
+		// TODO: create a field for the board position array. You can hand-initialize
+		// the starting entries of the array, or set them in the constructor.
 
 
 
@@ -140,7 +141,7 @@ namespace Cecs475.BoardGames.Chess.Model {
 		/// <summary>
 		/// Returns true if the given player's pieces are attacking the given position.
 		/// </summary>
-		public bool PositionIsThreatened(BoardPosition position, int byPlayer) {
+		public bool PositionIsAttacked(BoardPosition position, int byPlayer) {
 			throw new NotImplementedException("You must implement this method.");
 		}
 

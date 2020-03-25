@@ -9,621 +9,855 @@ using Cecs475.BoardGames.Model;
 
 namespace Cecs475.BoardGames.Chess.Test {
 	public class GameEndTests : ChessTest {
+		//check for a checkmate on the black side of the board
+		[Fact]
+		public void blackCheckmate() {
+			ChessBoard b = CreateBoardFromMoves(
+				"f2, f4",
+				"e7, e5",
+				"g2, g4",
+				"d8, h4"
+				);
+			b.GetPieceAtPosition(Pos("h4")).PieceType.Should().Be(ChessPieceType.Queen, "the queen should place the king into checkmate");
+			b.GetPieceAtPosition(Pos("h4")).Player.Should().Be(2, "the queen is controlled by player 2");
+			b.IsCheckmate.Should().BeTrue("the king has no escape");
+		}
+
 		/// <summary>
-		/// White surrounds and places Black King in check;
-		/// Test bench must validate only one possible move for Black
+		/// Black has White in check, White captures a piece to put it out of check, 
+		/// Black captures a piece to place White in Checkmate
 		/// </summary>
 		[Fact]
-		public void BlackCheckTest() {
-			List<Tuple<BoardPosition, ChessPiece>> startingPositions = new List<Tuple<BoardPosition, ChessPiece>>();
+		public void CheckMateAndCheck() {
+			ChessBoard b = CreateBoardFromPositions(
+				Pos("e3"), ChessPieceType.King, 1,
+				Pos("d8"), ChessPieceType.King, 2,
+				Pos("b3"), ChessPieceType.Knight, 1,
+				Pos("h2"), ChessPieceType.Bishop, 1,
+				Pos("f8"), ChessPieceType.Rook, 2,
+				Pos("a6"), ChessPieceType.Bishop, 2,
+				Pos("d6"), ChessPieceType.Knight, 2,
+				Pos("c5"), ChessPieceType.Queen, 2,
+				Pos("d4"), ChessPieceType.Pawn, 2,
+				Pos("h5"), ChessPieceType.Bishop, 2,
+				Pos("c3"), ChessPieceType.Pawn, 2,
+				Pos("c6"), ChessPieceType.Knight, 2
+				);
 
-			// White Positions
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(7, 4), new ChessPiece(ChessPieceType.King, 1)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(6, 4), new ChessPiece(ChessPieceType.Queen, 1)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(7, 5), new ChessPiece(ChessPieceType.Rook, 1)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(0, 0), new ChessPiece(ChessPieceType.Rook, 1)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(2, 1), new ChessPiece(ChessPieceType.Bishop, 1)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(2, 2), new ChessPiece(ChessPieceType.Bishop, 1)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(4, 2), new ChessPiece(ChessPieceType.Knight, 1)));
+			var possMove = b.GetPossibleMoves();
+			var WhiteKnightsMove = GetMovesAtPosition(possMove, Pos("b3"));
+			var WhiteKingsMove = GetMovesAtPosition(possMove, Pos("e3"));
+			var WhiteBishopsMove = GetMovesAtPosition(possMove, Pos("h2"));
+			b.IsCheck.Should().BeTrue("White King is in check by enemy pawn");
+			b.IsCheckmate.Should().BeFalse("Board is not in checkmate because the White knight has to capture the pawn");
+			WhiteKingsMove.Should().HaveCount(0, "White King cannot make any moves");
+			WhiteKnightsMove.Should().HaveCount(1, "White Knight has to capture the Pawn")
+				.And.Contain(Move("b3,d4"));
+			WhiteBishopsMove.Should().HaveCount(0, "White Bishop cannot make any moves to save the King");
+			Apply(b, "b3, d4");//White knight captures the pawn
 
-			// Black Positions
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(0, 4), new ChessPiece(ChessPieceType.King, 2)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(0, 2), new ChessPiece(ChessPieceType.Rook, 2)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(3, 4), new ChessPiece(ChessPieceType.Rook, 2)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(1, 6), new ChessPiece(ChessPieceType.Bishop, 2)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(1, 3), new ChessPiece(ChessPieceType.Knight, 2)));
-			startingPositions.Add(new Tuple<BoardPosition, ChessPiece>(new BoardPosition(1, 4), new ChessPiece(ChessPieceType.Pawn, 2)));
+			Apply(b, "c5, d4");//Black Queen captures the knight
 
-			ChessBoard b = new ChessBoard(startingPositions);
-
-			// Move Knight to to place Black King in Check Position
-			Apply(b, Move("c4, d6"));
-
-
-			// Black should be in Check
-			b.IsCheck.Should().BeTrue("Black's King (e4) is in Check from Knight (d6)");
-
-			var possMoves = b.GetPossibleMoves();
-
-			possMoves.Should().HaveCount(1, "Only one possible legal move to get out of check: Pawn takes Knight at d6")
-					  .And.Contain(new ChessMove(Pos("e7"), Pos("d6"), ChessMoveType.Normal), "Move must be Pawn at E8 taking Knight at D6");
+			possMove = b.GetPossibleMoves();
+			WhiteKingsMove = GetMovesAtPosition(possMove, Pos("e3"));
+			WhiteKingsMove.Should().HaveCount(0, "White King cannot make any moves because of the checkmate");
+			WhiteBishopsMove = GetMovesAtPosition(possMove, Pos("h2"));
+			WhiteBishopsMove.Should().HaveCount(0, "White Bishop cannot make any moves because of the checkmate");
+			b.IsCheck.Should().BeFalse("Situation is now checkmate");
+			b.IsCheckmate.Should().BeTrue("White King is now in checkmate");
 		}
 
+		/// <summary>
+		/// Checks that black only has three different possible moves in the case of a check
+		/// </summary>
 		[Fact]
-		public void WhiteKingCheckmate() {
-			ChessBoard board = CreateBoardFromMoves(
-			  "e2, e4",
-			  "e7, e5",
-			  "d1, h5",
-			  "d8, e7",
-			  "h5, e5",
-			  "e7, e5",
-			  "c2, c4",
-			  "d7, d5",
-			  "d2, d4",
-			  "e5, e4",
-			  "e1, d1",
-			  "e4, g4",
-			  "d1, d2",
-			  "f8, b4",
-			  "d2, d3",
-			  "g4, f4",
-			  "b1, d2",
-			  "g8, h6",
-			  "f1, e2",
-			  "c8, f5",
-			  "d2, e4",
-			  "f5, e4"
+		public void CheckMatePossibleMove() {
+			ChessBoard b = CreateBoardFromMoves(
+			"e2, e4",
+			"d7, d5",
+			"f1, c4",
+			"e7, e6",
+			"c4, b5"    //white bishop checkmates black king
 			);
-			board.IsCheckmate.Should().BeTrue("the king has no escape");
+
+			var poss = b.GetPossibleMoves();
+			var expected = GetMovesAtPosition(poss, Pos("c8"));
+
+			//black bishop block
+			expected.Should().Contain(Move("c8, d7"))
+				 .And.HaveCount(1, "black bishop should only have one possible move, blocking the check");
+
+			//black queen block
+			expected = GetMovesAtPosition(poss, Pos("d8"));
+			expected.Should().Contain(Move("d8, d7"))
+				 .And.HaveCount(1, "black queen should only have one possible move, blocking the check");
+
+			//black king avoid
+			expected = GetMovesAtPosition(poss, Pos("e8"));
+			expected.Should().Contain(Move("e8, e7"))
+				 .And.HaveCount(1, "black king should only have one possible move, avoiding the check");
 		}
 
 		[Fact]
-		public void FiftyMovesStalemate() {
-			ChessBoard b = new ChessBoard();
-			for (int i = 0; i < 25; i++) {
-				Apply(b, Move("b1, c3"));
-				Apply(b, Move("g8, h6"));
-				Apply(b, Move("c3, b1"));
-				Apply(b, Move("h6, g8"));
+		// if there are only two kings in the game, they cannot capture each other. Therefore, at some point (100 moves in this case), the game
+		// should end with a draw
+		// It does not work, due to a bug in the the files, I tried to download the files again but it seemed that nothing changed. 
+		// Even without this one there are still a total of 7 test cases
+		public void DrawTest2() {
+			ChessBoard b = CreateBoardFromPositions(
+					Pos("c6"), ChessPieceType.King, 1,
+					Pos("a6"), ChessPieceType.King, 2
+				);
+			bool c6 = true; bool a6 = true;
+			for (int i = 0; i < 100; i++) {
+				if (i % 2 == 0) {
+					if (c6)
+						Apply(b, Move("c6,c7"));
+					else
+						Apply(b, Move("c7,c6"));
+					c6 = !c6;
+					b.DrawCounter.Should().Be(1 +  i);
+				}
+				else {
+					if (a6)
+						Apply(b, Move("a6,a7"));
+					else
+						Apply(b, Move("a7,a6"));
+					a6 = !a6;
+				}
+
 			}
-			b.IsDraw.Should().Be(true, "if neither player wins in 50 moves, the game is a draw");
-		}
-
-		//Test 2
-		//Testing if the checkmate works
-		[Fact]
-		public void FourMoves() {
-			ChessBoard b = CreateBoardFromMoves(
-				 "e2, e4",
-				 "e7, e5",
-				 "f1, c4",
-				 "b8, c6",
-				 "d1, h5",
-				 "g8, f6",
-				 "h5, f7");
-			b.IsCheckmate.Should().Be(true, "The king should be on checkmate");
-			var moves = b.GetPossibleMoves();
-			moves.Should().BeEmpty();
-		}
-
-		//Test 3
-		//Testing if undo removes checkmate
-		[Fact]
-		public void UndoCheckMate() {
-			ChessBoard b = CreateBoardFromMoves(
-				 "e2, e4",
-				 "e7, e5",
-				 "f1, c4",
-				 "b8, c6",
-				 "d1, h5",
-				 "g8, f6",
-				 "h5, f7");
-			b.IsCheckmate.Should().Be(true, "The king should be on checkmate");
-			b.UndoLastMove();
-			b.IsCheckmate.Should().Be(false, "Undoing a checkmate should remove the checkmate");
-		}
-
-		//Stalemate test
-		[Fact]
-		public void Stalemate() {
-			ChessBoard b = CreateBoardFromPositions(
-				 Pos("a8"), ChessPieceType.King, 2,
-				 Pos("h1"), ChessPieceType.King, 1,
-				 Pos("g8"), ChessPieceType.Rook, 2,
-				 Pos("a2"), ChessPieceType.Rook, 2
-			);
-			b.IsStalemate.Should().BeTrue("There shouldn't be any possible moves for the king!");
-		}
-
-		/// <summary>
-		/// Test the King in check and the possible moves that result from that
-		/// </summary>
-		[Fact]
-		public void KingInCheck2() {
-			ChessBoard b = CreateBoardFromPositions(
-				 Pos("e3"), ChessPieceType.Bishop, 1,
-				 Pos("a1"), ChessPieceType.King, 1,
-				 Pos("h8"), ChessPieceType.King, 2
-			);
-
-			b.IsCheck.Should().BeFalse("Black is not in danger");
-			Apply(b, Move("e3, d4"));
-			b.IsCheck.Should().BeTrue("Black is in check by Bishop at d4");
-
-			var possMoves = b.GetPossibleMoves();
-			possMoves.Count().Should().Be(2, "There should be 2 moves from h8 King");
-			possMoves.Should().Contain(Move("h8, h7"), "h8 to h7 should be a valid move")
-			.And.Contain(Move("h8, g8"), "h8 to g8 should be a valid move")
-			.And.NotContain(Move("h8, g7"), "h8 to g7 should not be a valid move because of a check from Bishop");
-
-			b.UndoLastMove();
-			b.IsCheck.Should().BeFalse("Black is not in danger because of undo");
-
-		}
-
-		[Fact]
-		public void BlackKingIsCheck() {
-			ChessBoard b = CreateBoardFromMoves(
-				 "e2, e4",
-				 "e7, e5",
-				 "f1, e2",
-				 "f7, f5",
-				 "e2, h5"
-			);
-
-			b.GetPieceAtPosition(Pos("h5")).PieceType.Should().Be(ChessPieceType.Bishop, "Bishop should be at position h5");
-
-			b.IsCheck.Should().BeTrue("the king is threatened by rook but has an escape");
-
-			var possMoves = b.GetPossibleMoves();
-			var oneMove = GetMovesAtPosition(possMoves, Pos("e8"));
-			oneMove.Should().HaveCount(1, "King has one escape move");
-		}
-
-		/// <summary>
-		/// Four move checkmate
-		/// </summary>
-		[Fact]
-		public void fourMove_Checkmate() {
-			ChessBoard b = CreateBoardFromMoves(
-				"e2, e4",   // white pawn up 2
-				"e7, e5",   // black pawn down 2
-				"f1, c4", // bishop out
-				"b8, c6", // black knight out
-				"d1, h5", // white queen out
-				"g8, f6" // black knight out
-			);
-
-			Apply(b, "h5, f7");
-			var moves = b.GetPossibleMoves();
-			var kingMoves = GetMovesAtPosition(moves, Pos("e8"));
-			kingMoves.Should().HaveCount(0, "black has no moves");
-			b.CurrentAdvantage.Should().Be(Advantage(1, 1), "Black lost a single pawn of 1 value");
-			b.IsCheckmate.Should().BeTrue("King threatend by queen king can not capture queen because of bishop at c4");
-		}
-
-		/// <summary>
-		/// Rook captures pawn at e6 resulting in a stale mate
-		/// </summary>
-		[Fact]
-		public void PawnCapture_IntoStalemate() {
-
-			ChessBoard b = CreateBoardFromPositions(
-				Pos("e1"), ChessPieceType.King, 1,
-				Pos("f8"), ChessPieceType.King, 2,
-				Pos("h7"), ChessPieceType.Queen, 1,
-				Pos("a6"), ChessPieceType.Rook, 1,
-				Pos("e6"), ChessPieceType.Pawn, 2
-			);
-			b.CurrentAdvantage.Should().Be(Advantage(1, 13)); // Advantage before capture
-																			  //Console.Write(ConsoleView.BoardToString(b)); // Draw out board
-			Apply(b, "a6, e6");
-			b.CurrentAdvantage.Should().Be(Advantage(1, 14), "Player 2 pawn was captured"); // Advantage after capturing pawn
-
-			b.GetPieceAtPosition(Pos("e6")).Player.Should().Be(1, "Player 1's rook captured Player 2's pawn");
-
-			var moves = b.GetPossibleMoves();
-			var kingMoves = GetMovesAtPosition(moves, Pos("f8"));
-			kingMoves.Should().HaveCount(0, "Player 2 has no moves");
-			b.IsStalemate.Should().BeTrue("Player 2's king has no move that will allow him to not be in check");
-
-		}
-
-		/// <summary>
-		/// Black castles queen side into checkmate
-		/// </summary>
-		[Fact]
-		public void castling_IntoCheckmate() {
-
-			ChessBoard b = CreateBoardFromPositions(
-				Pos("d4"), ChessPieceType.King, 1,
-				Pos("e8"), ChessPieceType.King, 2,
-				Pos("e7"), ChessPieceType.Queen, 2,
-				Pos("a8"), ChessPieceType.Rook, 2,
-				Pos("c1"), ChessPieceType.Rook, 2
-			);
-
-			//Console.Write(ConsoleView.BoardToString(b)); // Draw out board
-
-			var moves = b.GetPossibleMoves();
-			var kingMoves = GetMovesAtPosition(moves, Pos("d4"));
-			kingMoves.Should().HaveCount(2, "black has no moves")
-				.And.BeEquivalentTo(Move("d4, d5"), Move("d4, d3"));
-
-			Apply(b, "d4, d5"); // Move king so it is blacks turn
-
-			b.CurrentPlayer.Should().Be(2, "Player 2's turn");
-
-			// Check black can castle queen side
-			moves = b.GetPossibleMoves();
-			kingMoves = GetMovesAtPosition(moves, Pos("e8"));
-			kingMoves.Should().HaveCount(5, "Black should have 4 regular moves and be able to castle queen side")
-				.And.BeEquivalentTo(Move("e8, d7"), Move("e8, d8"), Move("e8, f7"), Move("e8, f8"), Move("e8, c8"));
-
-			Apply(b, "e8, c8"); // black king castles queen side
-
-			kingMoves = GetMovesAtPosition(moves, Pos("d5"));
-			kingMoves.Should().HaveCount(0, "White is in check and has no moves");
-			b.IsCheckmate.Should().BeTrue("White king in checkmate");
-
-		}
-
-		/// <summary>
-		/// Use black king to check all possible moves available while in check
-		/// </summary>
-		[Fact]
-		public void KingInCheck_PossibleMoves() {
-			ChessBoard b = CreateBoardFromMoves(
-				 Move("d2, d4"),
-				 Move("g8, h6"),
-				 Move("d1, d3"),
-				 Move("g7, g6"),
-				 Move("a2, a3"),
-				 Move("f8, g7"),
-				 Move("b2, b3"),
-				 Move("g7, d4"),
-				 Move("c2, c3"),
-				 Move("f7, f6"),
-				 Move("e2, e3"),
-				 Move("h8, g8"),
-				 Move("d3, g6")
-				 );
-
-			// check if black king is currently in check
-			b.CurrentPlayer.Should().Be(2, "player is black");
-			b.IsCheck.Should().Be(true, "because king is in check");
-
-			var threeMovesExpected = b.GetPossibleMoves();
-			threeMovesExpected.Should().Contain(Move("e8, f8"))
-				 .And.Contain(Move("h6, f7"))
-				 .And.Contain(Move("g8, g6"))
-				 .And.Contain(Move("h7, g6"))
-				 .And.HaveCount(4, "there are only four moves where king can avoid check");
-		}
-
-		/// <summary>
-		/// The test checks if the king is in checkmate or not before and after the promotion. 
-		/// Test : - UndoLastMove
-		/// Player: - White, Black
-		/// Result: - After promoting the white pawn to a queen, the black king is at checkmate, but after undoing the move the
-		/// the king is no more at checkmate.
-		/// </summary>
-		[Fact]
-		private void CheckMateAfterPromotion() {
-			ChessBoard board = CreateBoardFromPositions(
-				 Pos("e1"), ChessPieceType.King, 1,
-				 Pos("a5"), ChessPieceType.Bishop, 1,
-				 Pos("a6"), ChessPieceType.Queen, 1,
-				 Pos("a8"), ChessPieceType.Rook, 1,
-				 Pos("g7"), ChessPieceType.Pawn, 1,
-				 Pos("d7"), ChessPieceType.King, 2);
-
-			board.IsCheck.Should().BeFalse("The black king can move from d7 to either c7 or e7");
-
-			//White rook move
-			Apply(board, "a8,a7");
-			board.IsCheck.Should().BeTrue("The black king is being checked by white rook which just moved to a7");
-			board.IsCheckmate.Should().BeFalse("The black king can still move to e8");
-
-			//Black king move
-			Apply(board, "d7,e8");
-			board.IsCheck.Should().BeFalse("The black king is not being checked by any white piece");
-
-			//White pawn move to promote
-			Apply(board, Move("(g7,g8,Queen)"));
-			board.IsCheckmate.Should().BeTrue("The black king is checked by promoted white queen and cannot move anywhere");
-
-			//check player one advantage
-			// board.CurrentAdvantage.Should().Be(Advantage(1,), "The black only has a king whereas white has king, bishop, queen," +
-			//    "rook, and the promoted queen");
-
-			board.CurrentPlayer.Should().Be(2, "It is player 2's turn after the white promoted to pawn");
-
-			board.UndoLastMove();
-
-			board.CurrentPlayer.Should().Be(1, "It is player 1's turn after undoing the move");
-
-			board.IsCheckmate.Should().BeFalse("The black king is not at check anymore because the promoted queen is not there");
-		}
-
-		/// <summary>
-		/// The test checks if castling is possible when the new position of the king will be in check. 
-		/// Test : - UndoLastMove
-		/// Player: - White
-		/// Result: - In the given layout of the board, castling cannot be perfomred because the white king at new position, 
-		/// c1 would be in check, but if we moved the knight away from b3 by undoing the move, castling should be possible 
-		/// </summary>
-		[Fact]
-		public void CastlingLeadingToCheck() {
-			ChessBoard board = CreateBoardFromMoves(
-				 "b2, b4",
-				 "b8, c6",
-				 "c1, a3",
-				 "c6, d4",
-				 "b1, c3",
-				 "f7, f6",
-				 "e2, e3",
-				 "f6, f5",
-				 "d1, e2");
-
-			//Move the black knight to put c1 as a position that can be captured
-			Apply(board, "d4, b3");
-
-			var possibleMoves = board.GetPossibleMoves();
-			var castlingKingMoves = GetMovesAtPosition(possibleMoves, Pos("e1"));
-			castlingKingMoves.Should().HaveCount(1, "The king cannot castle because the black knight would result in check")
-			  .And.NotContain(Move(Pos("e1"), Pos("c1"), ChessMoveType.CastleQueenSide));
-
-			board.UndoLastMove();
-
-			board.CurrentPlayer.Should().Be(2, "It is player 2's turn after undoing the move");
-
-			//move the black knight to a different position
-			Apply(board, "d4,b5");
-
-			possibleMoves = board.GetPossibleMoves();
-			castlingKingMoves = GetMovesAtPosition(possibleMoves, Pos("e1"));
-			castlingKingMoves.Should().HaveCount(2, "The king can castle as it would not lead to check")
-				 .And.Contain(Move(Pos("e1"), Pos("c1"), ChessMoveType.CastleQueenSide));
-
-		}
-
-		[Fact]
-		public void Player1KingInCheck() {
-			ChessBoard b = CreateBoardFromMoves(
-				 "g2, g4",
-				 "d7, d5",
-				 "e2, e3",
-				 "d8, d6",
-				 "d2, d4",
-				 "d6, b4"
-			);
-
-			var possMoves = b.GetPossibleMoves();
-			possMoves.Should().HaveCount(6, "King can move or check can be blocked");
-		}
-
-		/// <summary>
-		/// Testing possible moves from placing a king in check
-		/// </summary>
-		[Fact]
-		public void KingInCheck3() {
-			ChessBoard b = CreateBoardFromMoves(
-				"d2, d4",
-				"d7, d5",
-				"e2, e4",
-				"e7, e6",
-				"h2, h4",
-				"f8, b4"
-			);
-			b.IsCheck.Should().BeTrue("the king is in check");
-			var possMoves = b.GetPossibleMoves();
-			possMoves.Should().HaveCount(6, "the king can move out of check")
-				.And.Contain(Move("e1, e2"))
-				.And.Contain(Move("d1, d2"))
-				.And.Contain(Move("c1, d2"))
-				.And.Contain(Move("b1, d2"))
-				.And.Contain(Move("b1, c3"))
-				.And.Contain(Move("c2, c3"));
-			b.UndoLastMove();
-			b.IsCheck.Should().BeFalse("the king is no longer in check as the last move was undone");
-		}
-
-		/// <summary>
-		/// Check king check with a pawn
-		/// </summary>
-		[Fact]
-		public void checkKingCheck() {
-			ChessBoard b = new ChessBoard();
-
-			Apply(b, "b2, b4"); // Move p1's pawn
-			Apply(b, "c7, c5"); // Move p2's pawn
-			Apply(b, "b4, c5"); // Take p2's pawn with p1's pawn
-
-			Apply(b, "d7, d5"); // Move p2's pawn to make a en passant situation
-			Apply(b, "c5, d6");   // Move p1's pawn
-			Apply(b, "d8, c7"); // Move p2's queen
-			Apply(b, "d6, d7"); // Move p1's pawn to create a check situation
-			b.IsCheck.Should().BeTrue("the p2's king is threatened");
-			GetMovesAtPosition(b.GetPossibleMoves(), Pos("e7")).Should().HaveCount(0, "there is 0 possible moves for p2's pawn at this stage of game because the king is in check situation");
-			GetMovesAtPosition(b.GetPossibleMoves(), Pos("e8")).Should().HaveCount(2, "there is 2 possible moves for p2's king at this stage of game");
-		}
-
-		/// <summary>
-		/// Tests to see if the DrawCounter logic works based on the rules of a chess draw.
-		/// If the DrawCounter property reaches 100, then the game should be finished due to a draw.
-		/// </summary>
-		[Fact]
-		public void DrawCounterFinish() {
-			ChessBoard b = new ChessBoard();
-
-			Apply(b, Move("a2, a3"), Move("a7, a6"));
-			for (int i = 0; i < 25; i++) {
-				Apply(b, Move("a1, a2"), Move("a8, a7"), Move("a2, a1"), Move("a7, a8"));
-			}
-			b.DrawCounter.Should().Be(100, ", but it counted " + b.DrawCounter);
-			b.IsDraw.Should().Be(true, "there were no advancing player moves for 50 turns, game is a draw");
-			b.IsFinished.Should().Be(true, "the game is finished by a draw");
-		}
-
-		/// <summary>
-		/// Puts black king in check and only allows three possible
-		/// moves for player 2 to get out of check.
-		/// </summary>
-		[Fact]
-		public void PossibleMovesWhileInCheck() {
-			ChessBoard b = CreateBoardFromPositions(
-				 Pos("e1"), ChessPieceType.King, 1,
-				 Pos("g5"), ChessPieceType.Bishop, 1,
-				 Pos("e8"), ChessPieceType.King, 2,
-				 Pos("c7"), ChessPieceType.Pawn, 2,
-				 Pos("d2"), ChessPieceType.Pawn, 1,
-				 Pos("b5"), ChessPieceType.Queen, 1
-			 );
-
-			Apply(b, Move("d2, d3"));
-			var possMoves = b.GetPossibleMoves();
-			possMoves.Should().HaveCount(3, "king has two options for movement and pawn has one option for movement").And.BeEquivalentTo(Move("c7, c6"),
-				 Move("e8, f7"), Move("e8, f8"));
-		}
-
-		/// <summary>
-		/// The purpose of this test is to test the available moves of the black king
-		/// when only 1 move is possible, when he is surrounded, on check and checkmate
-		/// </summary>
-		[Fact]
-		public void BlackKingMovesOnCheckPlusCheckMate() {
-			ChessBoard b = CreateBoardFromPositions(
-				 Pos("a6"), ChessPieceType.King, 1,
-				 Pos("e3"), ChessPieceType.Queen, 1,
-				 Pos("b8"), ChessPieceType.Bishop, 1,
-				 Pos("a4"), ChessPieceType.Rook, 1,
-				 Pos("h7"), ChessPieceType.Rook, 1,
-				 Pos("d5"), ChessPieceType.King, 2
-			);
-			Apply(b, "a6, a7");
-			var possMoves = b.GetPossibleMoves();
-			var BlackKingMoves = GetMovesAtPosition(possMoves, Pos("d5"));
-			BlackKingMoves.Should().HaveCount(1, "King should be attacked from all around except from c6")
-				 .And.Contain(Move("d5, c6"));
-			b.IsCheck.Should().BeFalse("the king is not in check");
-			b.UndoLastMove();
-			Apply(b, "a6, b6");
-			possMoves = b.GetPossibleMoves();
-			BlackKingMoves = GetMovesAtPosition(possMoves, Pos("d5"));
-			BlackKingMoves.Should().BeEmpty("King should be attacked from all around with no moves available");
-			b.IsCheck.Should().BeFalse("The king is not in check");
-			b.UndoLastMove();
-			Apply(b, "e3, e4");
-			b.IsCheck.Should().BeTrue("The king is in check by the queen in e4");
-			Apply(b, "d5, c5");
-			b.IsCheck.Should().BeFalse("The king is not in check");
-			Apply(b, "a4, a5");
-			b.IsCheck.Should().BeFalse("The king is not in check but in checkmate");
-			b.IsCheckmate.Should().BeTrue("The king is in checkmate");
+			b.IsDraw.Should().BeTrue("because the value of the counter is: " + b.DrawCounter);
 		}
 
 		///<summary>
-		/// Determines the presence of a check from P1
-		///</summary>
+		/// Test stalemate situation 
 		[Fact]
-		public void ValidateCheckFromWhite() {
-			ChessBoard cb = CreateBoardFromPositions(
-				 Pos(1, 6), ChessPieceType.Rook, 2,
-				 Pos(2, 2), ChessPieceType.King, 2, //black king to be checked
-				 Pos(3, 4), ChessPieceType.Bishop, 2,
-				 Pos(4, 1), ChessPieceType.Bishop, 1,
-				 Pos(6, 2), ChessPieceType.Rook, 1, //white rook to check king
-				 Pos(6, 5), ChessPieceType.King, 1);
+		public void CheckForStaleMate() {
 
-			//move white bishop and switch to P2
-			Apply(cb, "b4, a5");
-			var possMoves = cb.GetPossibleMoves();
-			cb.IsCheck.Should().BeTrue("Black king is in check from white rook at c2");
+
+			ChessBoard b = CreateBoardFromPositions(
+				Pos("a8"), ChessPieceType.King, 2,
+				Pos("b7"), ChessPieceType.Pawn, 2,
+				Pos("f2"), ChessPieceType.Rook, 2,
+				Pos("g3"), ChessPieceType.Queen, 2,
+				Pos("h1"), ChessPieceType.King, 1
+			);
+
+			b.IsStalemate.Should().BeTrue("The game is in stalemae");
+
+		}
+		/// <summary>
+		/// Place black king in check and checkmate. Verify that the board correctly differentiates between the two and calculates the correct moves for
+		/// the king
+		/// </summary>
+		[Fact]
+		public void InCheckMate() {
+			ChessBoard board = CreateBoardFromPositions(Pos("g8"), ChessPieceType.King, 2,
+				Pos("h6"), ChessPieceType.King, 1,
+				Pos("f4"), ChessPieceType.Rook, 1,
+				Pos("b3"), ChessPieceType.Queen, 1,
+				Pos("a2"), ChessPieceType.Pawn, 1,
+				Pos("a7"), ChessPieceType.Pawn, 2);
+			Apply(board, Move(Pos("a2"), Pos("a3")));
+			var poss = board.GetPossibleMoves();
+			var bKing = GetMovesAtPosition(poss, Pos("g8"));
+			bKing.Should().HaveCount(1, "Should only be able to move to the right since black king is in check");
+			board.IsCheck.Should().Be(true, "Black king should be in check");
+			board.IsCheckmate.Should().Be(false, "Black king still has possible moves");
+			Apply(board, Move(Pos("g8"), Pos("h8")));
+			Apply(board, Move(Pos("f4"), Pos("f8")));
+			poss = board.GetPossibleMoves();
+			bKing = GetMovesAtPosition(poss, Pos("g8"));
+			board.IsCheck.Should().Be(false, "Check and checkmate are mutually exclusive");
+			board.IsCheckmate.Should().Be(true, "Check and checkmate are mutually exclusive");
+			board.IsStalemate.Should().Be(false, "Should not be a stalemate as one player won");
+			bKing.Should().HaveCount(0, "Since in checkmate, black king should have no more moves left");
+			board.IsFinished.Should().Be(true, "Game is finished since black king was placed in checkmate");
+			board.UndoLastMove();
+			board.IsFinished.Should().Be(false, "Game is still ongoing since there is no stalemate or checkmate");
+			board.IsCheckmate.Should().Be(false, "Black king is no longer in checkmate");
+			board.UndoLastMove();
+			board.IsCheck.Should().Be(true, "King is no longer in checkmate since last two moves were undone");
+			board.IsCheckmate.Should().Be(false, "King still has possible moves");
+			board.IsStalemate.Should().Be(false, "Should not be a stalemate as game is still going");
+			poss = board.GetPossibleMoves();
+			bKing = GetMovesAtPosition(poss, Pos("g8"));
+			bKing.Should().NotHaveCount(0, "King should still be able to move since last two moves were undone");
+		}
+
+		[Fact]
+		// "Tricky" situation
+		public void FoolsMate2() {
+			// Fool's mate
+			ChessBoard b = CreateBoardFromMoves(
+				"f2, f4",
+				"e7, e5",
+				"g2, g4",
+				"d8, h4"
+			);
+
+			// When checkmate occurs, the possible moves list should be empty;
+			// IsFinished should be true, as should IsCheckmate.
+			var possMoves = b.GetPossibleMoves();
+			var blockedKing = GetMovesAtPosition(possMoves, Pos("e1"));
+			blockedKing.Should().BeEmpty("The white king is in checkmate");
+			b.IsCheckmate.Should().BeTrue("The white king cannot move");
+			b.IsFinished.Should().BeTrue("The game should be over");
 		}
 
 		/// <summary>
-		/// Check a immediate checkmate, not check.
+		/// A checkmate in 4 moves that is known as the "Scholar's mate"
 		/// </summary>
 		[Fact]
-		public void BlackCheckMate() {
+		public void ScholarsMate() {
+			//Set board up for checkmate
 			ChessBoard b = CreateBoardFromMoves(
-				 "e2, e3",
-				 "g7, g5",
-				 "b2, b3",
-				 "f7, f5",
-				 "d1, h5"
-			);
-			//Check if Black's King is in checkmate
-			var possMoves = b.GetPossibleMoves();
-			b.IsCheckmate.Should().BeTrue("black's king is in checkmate from queen at h5, & has no way to get out of check");
-			b.IsCheck.Should().BeFalse("Checkmate and Check can't be both true");
+					"e2, e4",
+					 "e7, e5",
+					 "f1, c4",
+					 "b8, c6",
+					 "d1, f3",
+					 "d7, d6"
+				);
+
+			//Queen will capture white pawn at f7, thus causing checkmate and finishing game
+			Apply(b, "f3, f7");
+			var possible = b.GetPossibleMoves();
+			possible.Count().Should().Be(0, "There should be 0 possible moves to cancel the checkmate from White Queen");
+			b.IsCheckmate.Should().BeTrue("Black's king is in checkmate from White Queen at f7, and white bishop at c4 if black king attacks white queen");
+			b.IsFinished.Should().BeTrue("The game should be over after checkmate");
+
 		}
 
+
+		/// <summary>
+		/// A checkmate occurs when no moves can be made to protect a King in check
+		/// </summary>
 		[Fact]
-		public void BlackKingCheck() {
-			ChessBoard b = CreateBoardFromPositions(
-							Pos("d7"), ChessPieceType.Pawn, 2,
-							Pos("f3"), ChessPieceType.Pawn, 1,
-							Pos("e8"), ChessPieceType.King, 2,
-							Pos("e1"), ChessPieceType.King, 1,
-							Pos("h6"), ChessPieceType.Rook, 2,
-							Pos("d3"), ChessPieceType.Rook, 1,
-							Pos("c6"), ChessPieceType.Queen, 2,
-							Pos("h4"), ChessPieceType.Queen, 1,
-							Pos("c4"), ChessPieceType.Knight, 2,
-							Pos("g6"), ChessPieceType.Knight, 1
-					  );
-			// White moves rook for check
-			Apply(b, "d3, e3");
+		public void checkmate() {
+			ChessBoard b = CreateBoardFromMoves(
+				"e2, e4",
+				"f7, f6",
+				"d2, d3",
+				"g7, g5",
+				"d1, h5");
 
-			b.IsCheck.Should().BeTrue("black's king is in check from rook at e3");
-
-			// Checks Moves for Black's King
 			var possMoves = b.GetPossibleMoves();
-			possMoves.Count().Should().Be(5, "There should be 5 possible moves to cancel the checking of black's king");
+			possMoves.Should().HaveCount(0, "The game is won by white");
+			b.IsCheckmate.Should().BeTrue("Black can make no moves to protect the King");
+			b.IsFinished.Should().BeTrue("The game is over");
 
-			// Validating GetPossivleMoves() when a check occurs
-			possMoves.Should().Contain(Move("e8, f7"), "the king can move one space")
-			.And.Contain(Move("c6, e4"), "queen moves to block white rook, cancelling the check")
-			.And.Contain(Move("c4, e3"), "knight captures white rook")
-			.And.Contain(Move("c4, e5"), "knight moves to block white rook, cancelling the check")
-			.And.Contain(Move("c6, e6"), "queen captures white knight");
+			b.UndoLastMove();
+			b.IsCheckmate.Should().BeFalse("Undoing the move also removes checkmate");
+			b.IsFinished.Should().BeFalse("No player has won the game after undoing the move");
 		}
 
-		/*
-		4. Check for king to be in check 
-		*/
+		/// <summary>
+		/// No moves can be made if there is a stalemate
+		/// </summary>
 		[Fact]
-		public void KingInCheck() {
-			ChessBoard board = CreateBoardFromMoves(
-				"g2, g3",
-				"e7, e5",
-				"f1, h3",
+		public void stalemate() {
+			ChessBoard b = CreateBoardFromMoves(
+				"e2, e3",
+				"a7, a5",
+				"d1, h5",
+				"a8, a6",
+				"h5, a5",
+				"h7, h5",
+				"h2, h4",
+				"a6, h6",
+				"a5, c7",
+				"f7, f6",
+				"c7, d7",
+				"e8, f7",
+				"d7, b7",
+				"d8, d3",
+				"b7, b8",
+				"d3, h7",
+				"b8, c8",
+				"f7, g6"
+				);
+
+			Apply(b, "c8, e6");
+			var possMoves = b.GetPossibleMoves();
+			possMoves.Should().HaveCount(0, "Current player should not be able to move any piece without leaving King in check");
+			b.IsStalemate.Should().BeTrue();
+
+			b.UndoLastMove();
+			possMoves = b.GetPossibleMoves();
+			possMoves.Should().NotBeEmpty("No player is in checkmate or stalemate");
+			b.IsStalemate.Should().BeFalse("Undoing the last move removed the stalement");
+		}
+
+		/*2. Check tricky situation*/
+		[Fact]
+		public void CheckIfCheckmate() {
+			ChessBoard b = CreateBoardFromMoves(
+				"a2, a4",
+				"c7, c5",
+				"e2, e3",
+				"b8, a6",
+				"f2, f4",
 				"d7, d6",
-				"h3, g4");//bishop at c8 is underattack by bishop at g4 by player 1
+				"d2, d4",
+				"e8, d7",
+				"c1, d2",
+				"h7, h6",
+				"f4, f5"
 
-			//Check attacked position for bishop at c8 
-			var attackedPositions = board.GetAttackedPositions(1);
-			attackedPositions.Should().Contain(Pos("c8"), "bishop at g4 can capture by enemy bishop at c8");
+			);
+			Apply(b, "h8, h7");
+			Apply(b, "d2, a5");
+			Apply(b, "a8, b8");
+			Apply(b, "f1, b5");
+			b.IsCheckmate.Should().BeTrue("the king can't escape");
+		}
 
-			Apply(board, "f7, f5");//block attack with pawn
-			attackedPositions = board.GetAttackedPositions(1);
-			attackedPositions.Should().NotContain(Pos("c8"), "bishop at g4 cannot be captured by enemy bishop at c8");
 
-			Apply(board, "g4, h5");//king now in check
-			board.IsCheck.Should().BeTrue("the king at e8 is in check");
 
-			var possMoves = board.GetPossibleMoves();
-			var expectedMovesForKing = GetMovesAtPosition(possMoves, Pos("e8"));
-			expectedMovesForKing.Should().HaveCount(2, "king at e8 should have 2 moves to e7 or d7, not f7")
-				.And.Contain(Move("e8,e7"));
-			Apply(board, "e8, e7");
-			board.IsCheck.Should().BeFalse("the king at e8 is not in check");
+		/// <summary>
+		/// Apply moves known as the Fool's move and test
+		/// Also call undos and check board states
+		/// </summary>
+		[Fact]
+		public void fastestCheckMate() {
+			ChessBoard b = CreateBoardFromMoves(
+				"f2, f3",
+				"e7, e5",
+				"g2, g4"
+				);
+			//it should be Player 2's turn
+			b.CurrentPlayer.Should().Be(2, "Player's 2 turn");
+			Apply(b, Move("d8, h4"));
+			//after applying the move, then it should be Player 1's Turn
+			b.CurrentPlayer.Should().Be(1, "Player's 1 turn");
 
-			board.UndoLastMove();
-			board.IsCheck.Should().BeTrue("the king at e8 is back in check after undo");
+			b.IsCheckmate.Should().BeTrue("CheckMate has occured, Player 2 Wins");
+			b.IsFinished.Should().BeTrue("CheckMate has occured, the game isfinished");
+			b.IsCheck.Should().BeFalse("CheckMate has occurred, Player 2 Wins");
+			b.IsDraw.Should().BeFalse("CheckMate has occurred, there is no Draw");
+
+			//undo lsat move
+			b.UndoLastMove();
+
+			//After undo, it should be Player 2's turn again
+			b.CurrentPlayer.Should().Be(2, "Player's 2 turn");
+			//Checkmate did not happen after undo
+			b.IsCheckmate.Should().BeFalse("Undo happened, checkmate is not happened");
+			b.IsFinished.Should().BeFalse("Undo happened, game is not finished");
+			b.IsCheck.Should().BeFalse("Nothing is in check from undo");
+			b.IsDraw.Should().BeFalse("Game is still going on from undo");
+		}
+
+		/// <summary>
+		/// Apply fastest Stale Mate moves
+		/// Then check for boolean conditions for
+		/// isFinished, Stalemate, isCheckMate, and isCheck
+		/// </summary>
+		[Fact]
+		public void FastestStaleMate() {
+			ChessBoard b = CreateBoardFromMoves(
+				"e2, e3",
+				"a7, a5",
+				"d1, h5",
+				"a8, a6",
+				"h5, a5",
+				"h7, h5",
+				"h2, h4",
+				"a6, h6",
+				"a5, c7",
+				"f7, f6",
+				"c7, d7",
+				"e8, f7",
+				"d7, b7",
+				"d8, d3",
+				"b7, b8",
+				"d3, h7",
+				"b8, c8",
+				"f7, g6"
+			);
+			//move queen to e6 to complete stalemate board
+			Apply(b, Move("c8, e6"));
+			var possMove = b.GetPossibleMoves();
+			//test all possible cases
+			possMove.Should().BeEmpty("Stale Mate has occured, no more possible moves can be made");
+			b.IsFinished.Should().BeTrue("Stale Mate has occured, the game is finished");
+			b.IsStalemate.Should().BeTrue("Stale Mate has occured, no more moves can be made by Player Two");
+			b.IsCheckmate.Should().BeFalse("Stale Mate has occured, the match results is Draw");
+			b.IsCheck.Should().BeFalse("Stale Mate has occurred, no Check");
+		}
+
+		//this puts the king in check mate by a sequence of moves called fool's mate 
+		[Fact]
+		public void KingInCheckMate() {
+
+			//fool's mate
+			ChessBoard b = CreateBoardFromMoves(
+				"f2, f4",
+				"e7, e5",
+				"g2, g4",
+				"d8, h4"
+			);
+			b.IsCheckmate.Should().BeTrue("The King is in check mate.");
+			var possMoves = b.GetPossibleMoves();
+			possMoves.Should().BeEmpty("There are no possible moves.");
+			b.IsFinished.Should().BeTrue("The game is over because the king is in checkmate");
+
+		}
+
+		/// <summary>
+		/// Black player causes white to be stalemated (not in check, but no legal move available).
+		/// </summary>
+		[Fact]
+		public void Stalemate2() {
+			ChessBoard b = CreateBoardFromPositions(
+				Pos("e8"), ChessPieceType.King, 2,
+				Pos("h1"), ChessPieceType.King, 1,
+				Pos("g3"), ChessPieceType.Queen, 2
+			);
+
+			b.IsCheck.Should().BeFalse("black king is not in check");
+			b.IsStalemate.Should().BeTrue("Black queen threatens white king, but king has no legal moves although not in check");
+			b.IsFinished.Should().BeTrue("stalemate. game over");
+		}
+
+		/// <summary>
+		/// 50 full move rule results in a draw
+		/// If both sides make 50 full consecutive moves without a capture or pawn move, player may claim a draw
+		/// </summary>
+		[Fact]
+		public void FiftyFullMoveRule() {
+			ChessBoard b = CreateBoardFromMoves(
+				// move pawns out of the way
+				"a2, a4",
+				"a7, a6",
+				"e2, e3",
+				"g7, g5",
+				"h2, h4",
+				"d7, d5"
+			);
+
+			b.CurrentPlayer.Should().Be(1, "white should be next");
+			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "no captures made");
+			b.DrawCounter.Should().Be(0, "only pawns have moved so far");
+
+			Apply(b, Move("(a1, a2)")); // queenside white rook moves forward
+			b.DrawCounter.Should().Be(1, "rook moved up");
+
+			b.UndoLastMove();
+			b.GetPieceAtPosition(Pos("a1")).PieceType.Should().Be(ChessPieceType.Rook, "original black Rook position");
+			b.GetPieceAtPosition(Pos("a2")).PieceType.Should().Be(ChessPieceType.Empty, "original empty space");
+			b.CurrentPlayer.Should().Be(1, "undid last move, so it's still white player's turn");
+			b.DrawCounter.Should().Be(0, "only pawns have moved so far since rook move was undone");
+
+			Apply(b, Move("(h1, h3)")); // kingside white rook moves forwards
+			b.DrawCounter.Should().Be(1, "rook moved forward");
+			b.PositionIsAttacked(Pos("h3"), 2).Should().BeTrue();
+
+			Apply(b, Move("(c8, h3)")); // black bishop captures rook
+			b.CurrentAdvantage.Should().Be(Advantage(2, 5), "black bishop captured rook");
+			b.DrawCounter.Should().Be(0, "a capture was made, so counter was reset");
+
+			// Move black and white rooks
+			Apply(b, Move("(a1, a2)")); // white piece
+			Apply(b, Move("(a8, a7)")); // black piece
+			Apply(b, Move("(a2, a1)")); // white piece
+			Apply(b, Move("(a7, a8)")); // black piece
+			Apply(b, Move("(a1, a2)")); // white piece
+			Apply(b, Move("(a8, a7)")); // black piece
+			Apply(b, Move("(a2, a1)")); // white piece
+			Apply(b, Move("(a7, a8)")); // black piece
+			Apply(b, Move("(a1, a2)")); // white piece
+			Apply(b, Move("(a8, a7)")); // black piece
+			b.DrawCounter.Should().Be(10, "10 moves made without pawn or capture");
+
+			// Move black and white knights
+			Apply(b, Move("(b1, a3)")); // white piece
+			Apply(b, Move("(b8, d7)")); // black piece
+			Apply(b, Move("(a3, b1)")); // white piece
+			Apply(b, Move("(d7, b8)")); // black piece
+			Apply(b, Move("(b1, a3)")); // white piece
+			Apply(b, Move("(b8, d7)")); // black piece
+			Apply(b, Move("(a3, b1)")); // white piece
+			Apply(b, Move("(d7, b8)")); // black piece
+			Apply(b, Move("(b1, a3)")); // white piece
+			Apply(b, Move("(b8, d7)")); // black piece
+			b.DrawCounter.Should().Be(20, "20 moves made without pawn or capture");
+
+			// Move black and white queens
+			Apply(b, Move("(d1, h5)")); // white piece
+			Apply(b, Move("(d8, c8)")); // black piece
+			Apply(b, Move("(h5, d1)")); // white piece
+			Apply(b, Move("(c8, d8)")); // black piece
+			Apply(b, Move("(d1, h5)")); // white piece
+			Apply(b, Move("(d8, c8)")); // black piece
+			Apply(b, Move("(h5, d1)")); // white piece
+			Apply(b, Move("(c8, d8)")); // black piece
+			Apply(b, Move("(d1, h5)")); // white piece
+			Apply(b, Move("(d8, c8)")); // black piece
+			b.DrawCounter.Should().Be(30, "30 moves made without pawn or capture");
+
+			// Move black and white bishops
+			Apply(b, Move("(f1, d3)")); // white piece
+			Apply(b, Move("(f8, h6)")); // black piece
+			Apply(b, Move("(d3, f1)")); // white piece
+			Apply(b, Move("(h6, f8)")); // black piece
+			Apply(b, Move("(f1, d3)")); // white piece
+			Apply(b, Move("(f8, h6)")); // black piece
+			Apply(b, Move("(d3, f1)")); // white piece
+			Apply(b, Move("(h6, f8)")); // black piece
+			Apply(b, Move("(f1, d3)")); // white piece
+			Apply(b, Move("(f8, h6)")); // black piece
+			b.DrawCounter.Should().Be(40, "40 moves made without pawn or capture");
+
+			// Move black and white kings
+			Apply(b, Move("(e1, d1)")); // white piece
+			Apply(b, Move("(e8, d8)")); // black piece
+			Apply(b, Move("(d1, e1)")); // white piece
+			Apply(b, Move("(d8, e8)")); // black piece
+			Apply(b, Move("(e1, d1)")); // white piece
+			Apply(b, Move("(e8, d8)")); // black piece
+			Apply(b, Move("(d1, e1)")); // white piece
+			Apply(b, Move("(d8, e8)")); // black piece
+			Apply(b, Move("(e1, d1)")); // white piece
+			Apply(b, Move("(e8, d8)")); // black piece
+			b.DrawCounter.Should().Be(50, "50 moves made without pawn or capture");
+
+			// Move black and white rooks
+			Apply(b, Move("(a2, a1)")); // white piece
+			Apply(b, Move("(a7, a8)")); // black piece
+			Apply(b, Move("(a1, a2)")); // white piece
+			Apply(b, Move("(a8, a7)")); // black piece
+			Apply(b, Move("(a2, a1)")); // white piece
+			Apply(b, Move("(a7, a8)")); // black piece
+			Apply(b, Move("(a1, a2)")); // white piece
+			Apply(b, Move("(a8, a7)")); // black piece
+			Apply(b, Move("(a2, a1)")); // white piece
+			Apply(b, Move("(a7, a8)")); // black piece
+			b.DrawCounter.Should().Be(60, "60 moves made without pawn or capture");
+
+			// Move black and white queens
+			Apply(b, Move("(h5, e2)")); // white piece
+			Apply(b, Move("(c8, b8)")); // black piece
+			Apply(b, Move("(e2, h5)")); // white piece
+			Apply(b, Move("(b8, c8)")); // black piece
+			Apply(b, Move("(h5, e2)")); // white piece
+			Apply(b, Move("(c8, b8)")); // black piece
+			Apply(b, Move("(e2, h5)")); // white piece
+			Apply(b, Move("(b8, a7)")); // black piece
+			Apply(b, Move("(h5, e2)")); // white piece
+			Apply(b, Move("(a7, b6)")); // black piece
+			b.DrawCounter.Should().Be(70, "70 moves made without pawn or capture");
+
+			// Move black and white knights
+			Apply(b, Move("(a3, b1)")); // white piece
+			Apply(b, Move("(d7, b8)")); // black piece
+			Apply(b, Move("(b1, a3)")); // white piece
+			Apply(b, Move("(b8, d7)")); // black piece
+			Apply(b, Move("(a3, b1)")); // white piece
+			Apply(b, Move("(d7, b8)")); // black piece
+			Apply(b, Move("(b1, a3)")); // white piece
+			Apply(b, Move("(b8, d7)")); // black piece
+			Apply(b, Move("(a3, b1)")); // white piece
+			Apply(b, Move("(d7, b8)")); // black piece
+			b.DrawCounter.Should().Be(80, "80 moves made without pawn or capture");
+
+			// Move black and white bishops
+			Apply(b, Move("(d3, b5)")); // white piece
+			Apply(b, Move("(h6, f8)")); // black piece
+			Apply(b, Move("(b5, d3)")); // white piece
+			Apply(b, Move("(f8, h6)")); // black piece
+			Apply(b, Move("(d3, b5)")); // white piece
+			Apply(b, Move("(h6, f8)")); // black piece
+			Apply(b, Move("(b5, d3)")); // white piece
+			Apply(b, Move("(f8, h6)")); // black piece
+			Apply(b, Move("(d3, b5)")); // white piece
+			Apply(b, Move("(h6, f8)")); // black piece
+			b.DrawCounter.Should().Be(90, "90 moves made without pawn or capture");
+
+			// Move black and white kings
+			Apply(b, Move("(d1, e1)")); // white piece
+			Apply(b, Move("(d8, c8)")); // black piece
+			Apply(b, Move("(e1, d1)")); // white piece
+			Apply(b, Move("(c8, d8)")); // black piece
+			Apply(b, Move("(d1, e1)")); // white piece
+			Apply(b, Move("(d8, c8)")); // black piece
+			Apply(b, Move("(e1, d1)")); // white piece
+			Apply(b, Move("(c8, d8)")); // black piece
+			Apply(b, Move("(d1, e1)")); // white piece
+			Apply(b, Move("(d8, c8)")); // black piece
+
+			b.DrawCounter.Should().Be(100, "100 moves made without pawn or capture");
+
+			b.IsDraw.Should().BeTrue("50 (full) move rule results in a draw");
+			b.IsFinished.Should().BeTrue("Draw. Game over.");
+		}
+
+		/// <summary>
+		/// Two black bishops causing checkmate (white player).
+		/// </summary>
+		[Fact]
+		public void BishopsCausingCheckmate() {
+			ChessBoard b = CreateBoardFromMoves(
+				"e2, e4",
+				"d7, d6",
+				"c2, c3",
+				"c8, e6",
+				"f2, f4",
+				"g7, g5",
+				"a2, a3",
+				"f8, h6",
+				"a3, a4",
+				"e6, c4",
+				"a4, a5",
+				"g5, g4",
+				"f4, f5",
+				"d6, d5",
+				"a5, a6",
+				"h6, g5",
+				"a6, b7", // white pawn captures black pawn
+				"g5, h4"
+			);
+
+			b.IsCheck.Should().BeTrue("the white king is threatened by the bishop at h4");
+			var possMoves = b.GetPossibleMoves();
+			possMoves.Should().HaveCount(1, "white pawn must protect king from being captured by black bishop")
+				.And.BeEquivalentTo(Move("g2, g3"));
+			Apply(b, "g2, g3");
+			Apply(b, "d8, d6");
+			Apply(b, "h2, h3");
+			Apply(b, "h4, g3");  // black bishop captures white pawn
+			b.CurrentAdvantage.Should().Be(Advantage(0, 0), "tie");
+
+			possMoves = b.GetPossibleMoves();
+			possMoves.Should().HaveCount(0, "checkmate");
+			b.IsCheckmate.Should().BeTrue("white's king is in checkmate from bishop at h3 and bishop in c4");
+			b.IsFinished.Should().BeTrue("checkmate. game over.");
+		}
+
+		[Fact]
+		public void KingStalemate() {
+			ChessBoard b = CreateBoardFromPositions(
+				 Pos("a7"), ChessPieceType.King, 2,
+				 Pos("b1"), ChessPieceType.King, 1,
+				 Pos("b2"), ChessPieceType.Rook, 1,
+				 Pos("c6"), ChessPieceType.Rook, 1);
+			Apply(b, Move("c6, c7"));
+			Apply(b, Move("a7, a8"));
+			Apply(b, Move("b2, b7"));
+			var pos = b.GetPossibleMoves();
+			pos.Should().BeEmpty("Stalemate should not have possible moves for pieces");
+			var KingMoves = GetMovesAtPosition(pos, Pos("a8"));
+			KingMoves.Should().HaveCount(0, "King should not be able to move anywhere");
+			b.PositionIsAttacked(Pos("a8"), 1).Should().BeFalse("The square that the king is on should be not attacked");
+			b.IsFinished.Should().BeTrue("Game should be finished in the stalemate state");
+			b.IsCheckmate.Should().BeFalse("King should not be in checkmate since the square the king is on is not attacked");
+		}
+
+		// checks that if the king is in checkmate that there are no possible moves and that the game is over
+		[Fact]
+		public void checkmate_moves() {
+			ChessBoard b = CreateBoardFromMoves(
+				"f2, f4",
+				"e7, e5",
+				"g2, g4",
+				"d8, h4"
+			);
+			var possible = b.GetPossibleMoves();
+			b.IsFinished.Should().BeTrue("the game is finished");
+			b.IsCheckmate.Should().BeTrue("the king has no escape");
+			possible.Count().Should().Be(0, "There should be 0 possible moves to cancel the checking of black's king");
+
+		}
+
+		[Fact]
+		public void FoolsMate() {
+			ChessBoard b = CreateBoardFromMoves(
+				"g2, g4",
+				"e7, e5",
+				"f2, f3",
+				"d8, h4"
+			);
+
+			b.IsCheckmate.Should().BeTrue("Checkmate");
+			b.IsFinished.Should().BeTrue("Finished");
+
+		}
+
+		[Fact]
+		//Test case for checkmate
+		public void CheckmateTest() {
+			ChessBoard b = CreateBoardFromMoves(
+				"f2, f4",
+				"e7, e6",
+				"g2, g4"
+			);
+
+			//Check if the move is valid
+			var posMoves = b.GetPossibleMoves();
+			var checkMate = GetMovesAtPosition(posMoves, Pos("d8"));
+			checkMate.Should().Contain(Move("d8, h4"))
+				.And.HaveCount(4, "a king can move diagonal");
+
+			//Apply the move to achieve checkmate
+			Apply(b, "d8, h4");
+			posMoves = b.GetPossibleMoves();
+			posMoves.Should().BeEmpty("its a checkmate, queen cannot escape");
+			b.IsCheckmate.Should().Be(true, "it is a checkmate");
+			b.IsFinished.Should().Be(true, "checkmate, game over");
+
+			//Undo the move and check board state
+			b.UndoLastMove();
+			posMoves = b.GetPossibleMoves();
+			posMoves.Should().NotBeEmpty("undoing a checkmate should create moves");
+			b.IsCheckmate.Should().Be(false, "undoing a checkmate");
+			b.IsFinished.Should().Be(false, "undoing a checkmate, game still going");
+		}
+
+		[Fact]//Tricky Situation(Stalemate)
+		public void RooksAndKnightSlatemate() {
+
+			//Place King in stalemate position
+			ChessBoard b = CreateBoardFromPositions(
+				Pos("c7"), ChessPieceType.King, 1,
+				Pos("e8"), ChessPieceType.Rook, 2,
+				Pos("e6"), ChessPieceType.Rook, 2,
+				Pos("c5"), ChessPieceType.Knight, 2,
+				Pos("a1"), ChessPieceType.King, 2
+			);
+
+
+			var possMoves = b.GetPossibleMoves();
+			var forKing = GetMovesAtPosition(possMoves, Pos("c7"));
+
+			forKing.Should().HaveCount(0, "No move available");
+
+			b.IsStalemate.Should().BeTrue("Stalemate");
+
+			b.IsFinished.Should().BeTrue("Finished");
+
+		}
+
+		[Fact]
+		public void StalemateTest() {
+			ChessBoard b = CreateBoardFromPositions(
+				Pos("f6"), ChessPieceType.Queen, 2,
+				Pos("g8"), ChessPieceType.King, 1,
+				Pos("h6"), ChessPieceType.King, 2
+			);
+
+			var possMoves = b.GetPossibleMoves();
+			GetMovesAtPosition(possMoves, Pos("g8")).Should().HaveCount(0, "king has no possible moves to escape");
+			b.IsStalemate.Should().BeTrue("Game cannot be won and has entered stalemate");
+			b.IsFinished.Should().BeTrue("No more possible moves");
+			b.IsCheckmate.Should().BeFalse("Black pieces cannot checkmate White King");
+			b.IsCheck.Should().BeFalse("White King is not threatened by opposing pieces");
+		}
+
+		/// <summary>
+		/// Testing a draw.
+		/// </summary>
+		[Fact]
+		public void DrawTest() {
+			ChessBoard b = CreateBoardFromPositions(
+				Pos("b1"), ChessPieceType.King, 1,
+				Pos("b8"), ChessPieceType.King, 2
+			);
+
+			for (int i = 0; i < 25; i++) {
+				Apply(b, Move(Pos("b1"), Pos("b2"), ChessMoveType.Normal));
+				Apply(b, Move(Pos("b8"), Pos("c8"), ChessMoveType.Normal));
+				Apply(b, Move(Pos("b2"), Pos("b1"), ChessMoveType.Normal));
+				Apply(b, Move(Pos("c8"), Pos("b8"), ChessMoveType.Normal));
+			}
+
+			var moves = b.DrawCounter;
+			moves.Should().Be(100, "Once the total amount of moves is 100, (50 for White, 50 for Black) the game is a draw");
+			b.IsDraw.Should().BeTrue("The game has passed 100 moves where no captures have been made");
+		}
+
+		/// <summary>
+		/// Validate that the board has a stalemate and concludes the game
+		/// </summary>
+		[Fact]
+		public void StalemateTest2() {
+			ChessBoard b = CreateBoardFromPositions(
+				Pos("d5"), ChessPieceType.King, 1,
+				Pos("d7"), ChessPieceType.Pawn, 1,
+				Pos("d8"), ChessPieceType.King, 2
+			);
+
+			// Move so it's black's turn.
+			Apply(b, "d5, d6");
+			var possMoves = b.GetPossibleMoves();
+			possMoves.Should().HaveCount(0, "black king should have no legal move");
+			b.IsStalemate.Should().BeTrue("there is a stalemate");
+			b.IsCheckmate.Should().BeFalse("checkmate should be false");
+			b.IsFinished.Should().BeTrue("no legal moves means the game is over");
+		}
+
+		/// <summary>
+		/// TestCheckmateScenarios
+		/// # Test Boden's Checkmate.
+		/// The king is mated by the two criss-crossing bishops, and blocked by two friendly pieces
+		/// 
+		/// # Test Two Pawn Checkmate
+		/// This is a popular common endgame, where one side has two pawns and the other side has none.
+		/// In this scenario the white King has nowhere to move
+		/// </summary>
+		/// 
+		[Fact]
+		public void BodensCheckmateScenario() {
+			/// Test Boden's Checkmate on Black Player
+			ChessBoard cBoard = CreateBoardFromPositions(
+				Pos("d1"), ChessPieceType.King, 1,
+				Pos("a6"), ChessPieceType.Bishop, 1,
+				Pos("h2"), ChessPieceType.Bishop, 1,
+				Pos("d7"), ChessPieceType.Knight, 2,
+				Pos("d8"), ChessPieceType.Rook, 2,
+				Pos("c8"), ChessPieceType.King, 2
+				);
+
+			cBoard.IsCheckmate.Should().BeFalse("King should not be on checkmate");
+			cBoard.IsFinished.Should().BeFalse();
+
+			Apply(cBoard, "h2, g3");
+
+			cBoard.IsCheckmate.Should().BeTrue("King should be on checkmate");
+			cBoard.IsFinished.Should().BeTrue();
+		}
+
+		[Fact]
+		public void QueenCausingCheckmate() {
+			ChessBoard b = CreateBoardFromMoves(
+				"g2, g4", //white pawn moves 2
+				"e7, e6", //black pawn moves 1
+				"f2, f4", //white pawn moves 2
+				"d8, h4"); //black queen moves diagonal 
+			var possMoves = b.GetPossibleMoves();
+			GetMovesAtPosition(possMoves, Pos("0, 4")).Should().HaveCount(0, "king at D1 cannot move anywhere");
+			b.IsCheckmate.Should().BeTrue("the king has no escape");
+			b.IsFinished.Should().BeTrue("the game is over");
+		}
+
+		[Fact]
+		private void TwoPawnCheckmateScenario() {
+			// Test Two Pawn Checkmate on White player
+			ChessBoard cBoard = CreateBoardFromPositions(
+				Pos("d1"), ChessPieceType.King, 1,
+				Pos("e3"), ChessPieceType.King, 2,
+				Pos("e2"), ChessPieceType.Pawn, 2,
+				Pos("f4"), ChessPieceType.Pawn, 2
+				);
+			Apply(cBoard, "d1, e1");
+			Apply(cBoard, "f4, f3");
+
+			cBoard.IsFinished.Should().BeTrue();
+			// White King is not under threat, however has not moves left
+			cBoard.IsCheckmate.Should().BeFalse();
+			var availableMoves = GetMovesAtPosition(cBoard.GetPossibleMoves(), Pos("e1"));
+			availableMoves.Should().HaveCount(0);
 		}
 	}
 }
