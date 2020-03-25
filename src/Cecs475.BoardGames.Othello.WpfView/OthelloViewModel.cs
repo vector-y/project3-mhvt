@@ -34,7 +34,6 @@ namespace Cecs475.BoardGames.Othello.WpfView {
 			get; set;
 		}
 
-
 		private bool mIsHighlighted;
 		/// <summary>
 		/// Whether the square should be highlighted because of a user action.
