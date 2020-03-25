@@ -4,19 +4,17 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{F7F71675-12A1-49DA-AD59-13E4BBB1F7A4}</ProjectGuid>
-    <OutputType>WinExe</OutputType>
-    <RootNamespace>Cecs475.BoardGames.WpfApp</RootNamespace>
-    <AssemblyName>Cecs475.BoardGames.WpfApp</AssemblyName>
+    <ProjectGuid>{265C28BB-BE7D-4822-B814-9457B99087A3}</ProjectGuid>
+    <OutputType>library</OutputType>
+    <RootNamespace>Cecs475.BoardGames.Chess.WpfView</RootNamespace>
+    <AssemblyName>Cecs475.BoardGames.Chess.WpfView</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <TargetFrameworkProfile />
+    <Deterministic>true</Deterministic>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -26,7 +24,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -51,18 +48,16 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
-    <ApplicationDefinition Include="App.xaml">
+    <Page Include="UserControl1.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
-    </ApplicationDefinition>
-    <Compile Include="App.xaml.cs">
-      <DependentUpon>App.xaml</DependentUpon>
+    </Page>
+    <Compile Include="UserControl1.xaml.cs">
+      <DependentUpon>UserControl1.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GameChoiceWindow.xaml.cs" />
-    <Compile Include="GameWindow.xaml.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -86,35 +81,21 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Page Include="GameChoiceWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="GameWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Cecs475.BoardGames.Chess.WpfView\Cecs475.BoardGames.Chess.WpfView.csproj">
-      <Project>{265c28bb-be7d-4822-b814-9457b99087a3}</Project>
-      <Name>Cecs475.BoardGames.Chess.WpfView</Name>
+    <ProjectReference Include="..\Cecs475.BoardGames.Chess.Model\Cecs475.BoardGames.Chess.Model.csproj">
+      <Project>{16a691e8-d370-4cab-a02c-1bbbfdf19dd4}</Project>
+      <Name>Cecs475.BoardGames.Chess.Model</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Cecs475.BoardGames.Othello.WpfView\Cecs475.BoardGames.Othello.WpfView.csproj">
-      <Project>{b60be21d-4156-4033-a296-c9fe1347fbd1}</Project>
-      <Name>Cecs475.BoardGames.Othello.WpfView</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Cecs475.BoardGames.TicTacToe.WpfView\Cecs475.BoardGames.TicTacToe.WpfView.csproj">
-      <Project>{8b69e987-cc12-47cf-82b0-87d608aa69f3}</Project>
-      <Name>Cecs475.BoardGames.TicTacToe.WpfView</Name>
+    <ProjectReference Include="..\Cecs475.BoardGames.Model\Cecs475.BoardGames.Model.csproj">
+      <Project>{ad3670ac-f179-44fd-b2c4-2bf0c6819355}</Project>
+      <Name>Cecs475.BoardGames.Model</Name>
     </ProjectReference>
     <ProjectReference Include="..\Cecs475.BoardGames.WpfView\Cecs475.BoardGames.WpfView.csproj">
       <Project>{2df47748-ad85-4ed5-8b57-729bed253f66}</Project>
       <Name>Cecs475.BoardGames.WpfView</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Resources\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

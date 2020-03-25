@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Cecs475.BoardGames.Model;
 
 namespace Cecs475.BoardGames.Chess.Model {
@@ -23,6 +23,7 @@ namespace Cecs475.BoardGames.Chess.Model {
 		/// The type of move being applied.
 		/// </summary>
 		public ChessMoveType MoveType { get; }
+		public ChessPieceType ChessPieceType { get; }
 
 		// You must set this property when applying a move.
 		public int Player { get; set; }
@@ -38,15 +39,35 @@ namespace Cecs475.BoardGames.Chess.Model {
 			EndPosition = end;
 			MoveType = moveType;
 		}
+		public ChessMove(BoardPosition start, BoardPosition end, ChessPieceType piece, ChessMoveType moveType = ChessMoveType.PawnPromote)
+		{
+			StartPosition = start;
+			EndPosition = end;
+			ChessPieceType = piece;
+			MoveType = moveType;
+		}
 
 		// TODO: You must write this method.
 		public virtual bool Equals(ChessMove other) {
 			// Most chess moves are equal to each other if they have the same start and end position.
 			// PawnPromote moves must also be promoting to the same piece type.
-			throw new NotImplementedException("You are responsible for implementing this method.");
+			if (this.MoveType == ChessMoveType.PawnPromote)
+			{
+				if (this.StartPosition == other.StartPosition && this.EndPosition == other.EndPosition && this.ChessPieceType == other.ChessPieceType)
+				{
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
+			if (this.StartPosition == other.StartPosition && this.EndPosition == other.EndPosition)
+			{
+				return true;
+			}
+			return false;
 		}
-
-
 
 		// Equality methods.
 		bool IEquatable<IGameMove>.Equals(IGameMove other) {
