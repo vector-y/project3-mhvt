@@ -1,5 +1,6 @@
 ﻿using Cecs475.BoardGames.Chess.Model;
 using Cecs475.BoardGames.Model;
+using Cecs475.BoardGames.WpfView;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -40,7 +41,7 @@ namespace Cecs475.BoardGames.Chess.WpfView
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
     }
-    class ChessViewModel
+    class ChessViewModel : INotifyPropertyChanged, IGameViewModel
     {
         private ChessBoard mChessBoard;
         private ObservableCollection<ChessSquare> mSquares;
@@ -74,7 +75,7 @@ namespace Cecs475.BoardGames.Chess.WpfView
         {
             get { return mChessBoard.CurrentPlayer; }
         }
-        public HashSet<BoardPosition> PossibleMoves { get; private set }
+        public HashSet<BoardPosition> PossibleMoves { get; private set; }
 
 
     }
