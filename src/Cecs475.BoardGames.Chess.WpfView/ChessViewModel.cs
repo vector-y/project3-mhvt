@@ -47,6 +47,7 @@ namespace Cecs475.BoardGames.Chess.WpfView
         private ObservableCollection<ChessSquare> mSquares;
 
         public event EventHandler GameFinished;
+        public event PropertyChangedEventHandler PropertyChanged;
 
         public ChessViewModel()
         {
@@ -77,6 +78,13 @@ namespace Cecs475.BoardGames.Chess.WpfView
         }
         public HashSet<BoardPosition> PossibleMoves { get; private set; }
 
+        public GameAdvantage BoardAdvantage => throw new NotImplementedException();
 
+        public bool CanUndo => throw new NotImplementedException();
+
+        public void UndoMove()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
