@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:Cecs475.BoardGames.WpfApp"
         xmlns:view="clr-namespace:Cecs475.BoardGames.WpfView;assembly=Cecs475.BoardGames.WpfView"
         xmlns:othello="clr-namespace:Cecs475.BoardGames.Othello.WpfView;assembly=Cecs475.BoardGames.Othello.WpfView"
+        xmlns:chess="clr-namespace:Cecs475.BoardGames.Chess.WpfView;assembly=Cecs475.BoardGames.Chess.WpfView"
         xmlns:tictactoe="clr-namespace:Cecs475.BoardGames.TicTacToe.WpfView;assembly=Cecs475.BoardGames.TicTacToe.WpfView"
         mc:Ignorable="d"
         Title="Let's play a game!" Width="300" FontSize="16"
@@ -14,6 +15,7 @@
         <!-- This array contains all the game types known by the application -->
         <x:Array x:Key="GameTypes" Type="{x:Type view:IWpfGameFactory}">
             <othello:OthelloGameFactory/>
+            <chess:ChessGameFactory/>
             <tictactoe:TicTacToeGameFactory/>
         </x:Array>
     </Window.Resources>
