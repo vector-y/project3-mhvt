@@ -34,14 +34,31 @@ namespace Cecs475.BoardGames.Chess.WpfView
         {
             get; set;
         }
-
         public event PropertyChangedEventHandler PropertyChanged;
         private void OnPropertyChanged(string name)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
+
+
+        private bool mIsHighlighted;
+        /// <summary>
+        /// Whether the square should be highlighted because of a user action.
+        /// </summary>
+        public bool IsHighlighted
+        {
+            get { return mIsHighlighted; }
+            set
+            {
+                if (value != mIsHighlighted)
+                {
+                    mIsHighlighted = value;
+                    OnPropertyChanged(nameof(IsHighlighted));
+                }
+            }
+        }
     }
-    class ChessViewModel : INotifyPropertyChanged, IGameViewModel
+    public class ChessViewModel : INotifyPropertyChanged, IGameViewModel
     {
         private ChessBoard mChessBoard;
         private ObservableCollection<ChessSquare> mSquares;
@@ -68,7 +85,7 @@ namespace Cecs475.BoardGames.Chess.WpfView
                 select (m.StartPosition)
             ) ;
         }
-        public ObservableCollection<ChessSquare> Squares
+        public ObservableCollection<ChessSquare> ChessSquares
         {
             get { return mSquares; }
         }
@@ -78,13 +95,18 @@ namespace Cecs475.BoardGames.Chess.WpfView
         }
         public HashSet<BoardPosition> PossibleMoves { get; private set; }
 
-        public GameAdvantage BoardAdvantage => throw new NotImplementedException();
+        public GameAdvantage BoardAdvantage => mChessBoard.CurrentAdvantage;
 
-        public bool CanUndo => throw new NotImplementedException();
+
+        public bool CanUndo => true;
 
         public void UndoMove()
         {
             throw new NotImplementedException();
+        }
+        private void OnPropertyChanged(string name)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
     }
 }

@@ -48,15 +48,17 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="UserControl1.xaml">
-      <Generator>MSBuild:Compile</Generator>
+    <Page Include="ChessView.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Compile Include="ChessViewModel.cs" />
-    <Compile Include="UserControl1.xaml.cs">
-      <DependentUpon>UserControl1.xaml</DependentUpon>
-      <SubType>Code</SubType>
+    <Compile Include="ChessBackgroundConverter.cs" />
+    <Compile Include="ChessGameFactory.cs" />
+    <Compile Include="ChessImageConverter.cs" />
+    <Compile Include="ChessView.xaml.cs">
+      <DependentUpon>ChessView.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ChessViewModel.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
