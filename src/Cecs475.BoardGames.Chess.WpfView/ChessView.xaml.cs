@@ -21,6 +21,7 @@ namespace Cecs475.BoardGames.Chess.WpfView
     /// </summary>
     public partial class ChessView : UserControl, IWpfGameView
     {
+        ChessSquare selectedSquare;
         public ChessView()
         {
             InitializeComponent();
@@ -36,19 +37,58 @@ namespace Cecs475.BoardGames.Chess.WpfView
             Border b = sender as Border;
             var square = b.DataContext as ChessSquare;
             var vm = FindResource("vm") as ChessViewModel;
-            square.IsHighlighted = true;
-            /*if (vm.PossibleMoves.Contains(square.Position))
+
+            foreach(var move in vm.PossibleMoves)
             {
-                square.IsHighlighted = true;
-            }*/
+                if(selectedSquare != null) {
+                    if (move.StartPosition == selectedSquare.Position && move.EndPosition == square.Position)
+                    {
+                        square.IsPossible = true;
+                    }
+                }
+                
+                if(move.StartPosition == square.Position)
+                {
+                    square.IsHighlighted = true;
+                }
+            }
         }
 
+        private void Border_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            Border b = sender as Border;
+            var square = b.DataContext as ChessSquare;
+            var vm = FindResource("vm") as ChessViewModel;
+            foreach (var move in vm.PossibleMoves)
+            {
+                if (move.StartPosition == square.Position)
+                {
+                    //if the seleceted square is not the same as before
+                    if (selectedSquare != null && selectedSquare.Position != square.Position)
+                    {
+                        selectedSquare.IsSelected = false;
+                    }
+                    selectedSquare = square;
+                    square.IsHighlighted = true;
+                    square.IsSelected = true;
+                }
+            }
+            if(selectedSquare != null)
+            {
+                if(selectedSquare.Position != square.Position)
+                {
+                    vm.ApplyMove(selectedSquare.Position, square.Position);
+                    selectedSquare.IsSelected = false;
+                }
+            }
+        }
 
         private void Border_MouseLeave(object sender, MouseEventArgs e)
         {
             Border b = sender as Border;
             var square = b.DataContext as ChessSquare;
             square.IsHighlighted = false;
+            square.IsPossible = false;
         }
     }
 

@@ -12,18 +12,35 @@ namespace Cecs475.BoardGames.Chess.WpfView
 {
     class ChessBackgroundConverter : IMultiValueConverter
     {
-        private static SolidColorBrush HIGHLIGHT_BRUSH = Brushes.DarkRed;
+        private static SolidColorBrush CHECK_BRUSH = Brushes.Yellow;
+        private static SolidColorBrush SELECTED_BRUSH = Brushes.Red;
         private static SolidColorBrush DEFAULT_BRUSH = Brushes.Brown;
         private static SolidColorBrush DEFAULT_TWO_BRUSH = Brushes.Tan;
+        private static SolidColorBrush POSSIBLE_MOVE_BRUSH = Brushes.LightGreen;
 
 
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
             BoardPosition pos = (BoardPosition)values[0];
             bool isHighlighted = (bool)values[1];
+            bool isSelected = (bool)values[2];
+            bool isPossible = (bool)values[3];
+            bool isCheck = (bool)values[4];
+            if (isCheck)
+            {
+                return CHECK_BRUSH;
+            }
+            if (isPossible)
+            {
+                return POSSIBLE_MOVE_BRUSH;
+            }
+            if (isSelected)
+            {
+                return SELECTED_BRUSH;
+            }
             if (isHighlighted)
             {
-                return HIGHLIGHT_BRUSH;
+                return POSSIBLE_MOVE_BRUSH;
             }
 
             if(pos.Row % 2 == pos.Col % 2)
