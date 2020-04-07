@@ -16,49 +16,57 @@ namespace Cecs475.BoardGames.Chess.WpfView
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return new BitmapImage(new Uri("/Resources/blackPawn.png", UriKind.Relative));
-            /* try
-             {
-                 ChessPiece chesspiece = (ChessPiece)value;
-                 int player = chesspiece.Player;
-                 String playerString = "";
-                 if(player == 1)
-                 {
-                     playerString = "white";
-                 }
-                 if(player == 2)
-                 {
-                     playerString = "black";
-                 }
+            try
+            {
+                ChessPiece chesspiece = (ChessPiece)value;
+                int player = chesspiece.Player;
+                String playerString = "";
+                if(player == 1)
+                {
+                    playerString = "white";
+                }
+                if(player == 2)
+                {
+                    playerString = "black";
+                }
 
-                 if(chesspiece.PieceType != ChessPieceType.Empty)
-                 {
-                     if(chesspiece.PieceType == ChessPieceType.Pawn)
-                     {
-                         String pieceType = "Pawn";
-                         return new BitmapImage(new Uri("/Resources/" + playerString + pieceType + ".png", UriKind.Relative));
+                if (chesspiece.PieceType != ChessPieceType.Empty)
+                {
+                    String pieceType = "";
+                    if (chesspiece.PieceType == ChessPieceType.Pawn)
+                    {
+                        pieceType = "Pawn";
+                    }
+                    if (chesspiece.PieceType == ChessPieceType.Rook)
+                    {
+                        pieceType = "Rook";
+                    }
+                    if (chesspiece.PieceType == ChessPieceType.Bishop)
+                    {
+                        pieceType = "Bishop";
+                    }
+                    if (chesspiece.PieceType == ChessPieceType.Knight)
+                    {
+                        pieceType = "Knight";
+                    }
+                    if (chesspiece.PieceType == ChessPieceType.Queen)
+                    {
+                        pieceType = "Queen";
+                    }
+                    if (chesspiece.PieceType == ChessPieceType.King)
+                    {
+                        pieceType = "King";
+                    }
+                    return new BitmapImage(new Uri("/Cecs475.BoardGames.Chess.WpfView;component/Resources/" + playerString + pieceType + ".png", UriKind.Relative));
+                }
+                return null;
 
-                     }
-                     else
-                     {
-                         return null;
-                     }
-                 }
-                 else
-                 {
-                     return null;
-                 }
-             }
-             catch (Exception e)
+            }
+            catch (Exception e)
              {
                  return null;
-             }*/
+             }
 
-        }
-
-        private Brush GetFillBrush(int player)
-        {
-            return player == 1 ? Brushes.Black : Brushes.White;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

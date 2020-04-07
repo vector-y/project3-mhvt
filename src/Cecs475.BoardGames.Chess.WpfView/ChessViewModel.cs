@@ -34,6 +34,7 @@ namespace Cecs475.BoardGames.Chess.WpfView
         {
             get; set;
         }
+
         public event PropertyChangedEventHandler PropertyChanged;
         private void OnPropertyChanged(string name)
         {
@@ -54,6 +55,49 @@ namespace Cecs475.BoardGames.Chess.WpfView
                 {
                     mIsHighlighted = value;
                     OnPropertyChanged(nameof(IsHighlighted));
+                }
+            }
+        }
+
+        private bool mIsSelected;
+        public bool IsSelected
+        {
+            get { return mIsSelected; }
+            set
+            {
+                if (value != mIsSelected)
+                {
+                    mIsSelected = value;
+                    OnPropertyChanged(nameof(IsSelected));
+                }
+            }
+        }
+
+
+        private bool mIsPossible;
+        public bool IsPossible
+        {
+            get { return mIsPossible; }
+            set
+            {
+                if (value != mIsPossible)
+                {
+                    mIsPossible = value;
+                    OnPropertyChanged(nameof(IsPossible));
+                }
+            }
+        }
+
+        private bool mIsCheck;
+        public bool IsCheck
+        {
+            get { return mIsCheck; }
+            set
+            {
+                if(value != mIsCheck)
+                {
+                    mIsCheck = value;
+                    OnPropertyChanged(nameof(IsCheck));
                 }
             }
         }
@@ -80,10 +124,11 @@ namespace Cecs475.BoardGames.Chess.WpfView
 
 
             //might  not be select from m.startposition
-            PossibleMoves = new HashSet<BoardPosition>(
+            PossibleMoves = new HashSet<ChessMove>(
                 from ChessMove m in mChessBoard.GetPossibleMoves()
-                select (m.StartPosition)
+                select m
             ) ;
+
         }
         public ObservableCollection<ChessSquare> ChessSquares
         {
@@ -93,7 +138,7 @@ namespace Cecs475.BoardGames.Chess.WpfView
         {
             get { return mChessBoard.CurrentPlayer; }
         }
-        public HashSet<BoardPosition> PossibleMoves { get; private set; }
+        public HashSet<ChessMove> PossibleMoves { get; private set; }
 
         public GameAdvantage BoardAdvantage => mChessBoard.CurrentAdvantage;
 
@@ -107,6 +152,51 @@ namespace Cecs475.BoardGames.Chess.WpfView
         private void OnPropertyChanged(string name)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+
+        internal void ApplyMove(BoardPosition start_position, BoardPosition end_position)
+        {
+            var possMoves = mChessBoard.GetPossibleMoves() as IEnumerable<ChessMove>;
+            // Validate the move as possible.
+            foreach (var move in possMoves)
+            {
+                if (move.EndPosition.Equals(end_position) && move.StartPosition.Equals(start_position))
+                {
+                    mChessBoard.ApplyMove(move);
+                    break;
+                }
+            }
+
+            RebindState();
+        }
+
+        public void RebindState()
+        {
+            //might  not be select from m.startposition
+            PossibleMoves = new HashSet<ChessMove>(
+               from ChessMove m in mChessBoard.GetPossibleMoves()
+               select m
+           );
+            // Update the collection of squares by examining the new board state.
+            var newSquares = BoardPosition.GetRectangularPositions(8, 8);
+            int i = 0;
+            foreach (var pos in newSquares)
+            {
+                mSquares[i].chessPiece = mChessBoard.GetPieceAtPosition(pos);
+                if (mSquares[i].chessPiece.PieceType == ChessPieceType.King && CurrentPlayer == mSquares[i].chessPiece.Player)
+                {
+                    mSquares[i].IsCheck = mChessBoard.IsCheck;
+                }
+                if (mSquares[i].chessPiece.PieceType == ChessPieceType.King && CurrentPlayer != mSquares[i].chessPiece.Player)
+                {
+                    mSquares[i].IsCheck = mChessBoard.isEnemyCheck();
+                }
+
+                i++;
+            }
+            OnPropertyChanged(nameof(BoardAdvantage));
+            OnPropertyChanged(nameof(CurrentPlayer));
+            OnPropertyChanged(nameof(CanUndo));
         }
     }
 }
