@@ -11,13 +11,13 @@
         <local:ChessBackgroundConverter x:Key="BackgroundColor"/>
     </UserControl.Resources>
 
-    
+    <!-- Below binds the chessView Model and chessView-->
     <ItemsControl x:Name="BoardPositions" DataContext="{StaticResource vm}"
                 ItemsSource="{Binding ChessSquares}">
 
         <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
-                <UniformGrid Columns="8" Rows="8" Background="Green"/>
+                <UniformGrid Columns="8" Rows="8"/>
             </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
 
@@ -27,7 +27,7 @@
 
         <ItemsControl.ItemTemplate>
             <DataTemplate>
-                <Border BorderThickness="1" BorderBrush="Black"
+                <Border BorderThickness="2" BorderBrush="Black"
                     MouseEnter="Border_MouseEnter" MouseUp="Border_MouseUp" MouseLeave="Border_MouseLeave">
 
                     <Border.Background>
