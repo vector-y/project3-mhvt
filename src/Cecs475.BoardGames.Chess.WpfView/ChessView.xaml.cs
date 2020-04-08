@@ -78,9 +78,10 @@ namespace Cecs475.BoardGames.Chess.WpfView
                 if(selectedSquare.Position != square.Position)
                 {
                     vm.ApplyMove(selectedSquare.Position, square.Position);
-                    selectedSquare.IsSelected = false;
+                    selectedSquare.IsSelected = false;  
                 }
             }
+
         }
 
         private void Border_MouseLeave(object sender, MouseEventArgs e)

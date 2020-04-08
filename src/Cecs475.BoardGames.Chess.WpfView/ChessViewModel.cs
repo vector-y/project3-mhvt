@@ -143,11 +143,16 @@ namespace Cecs475.BoardGames.Chess.WpfView
         public GameAdvantage BoardAdvantage => mChessBoard.CurrentAdvantage;
 
 
-        public bool CanUndo => true;
+        public bool CanUndo => mChessBoard.MoveHistory.Any();
 
         public void UndoMove()
         {
-            throw new NotImplementedException();
+            if (CanUndo)
+            {
+                mChessBoard.UndoLastMove();
+                RebindState();
+            }
+           
         }
         private void OnPropertyChanged(string name)
         {
@@ -183,10 +188,18 @@ namespace Cecs475.BoardGames.Chess.WpfView
             foreach (var pos in newSquares)
             {
                 mSquares[i].chessPiece = mChessBoard.GetPieceAtPosition(pos);
+
+                //if piece at position is not king, set ischeck to false
+                if(mSquares[i].chessPiece.PieceType != ChessPieceType.King)
+                {
+                    mSquares[i].IsCheck = false;
+                }
+                //if peice is in check and it's their turn, check if he is in check
                 if (mSquares[i].chessPiece.PieceType == ChessPieceType.King && CurrentPlayer == mSquares[i].chessPiece.Player)
                 {
                     mSquares[i].IsCheck = mChessBoard.IsCheck;
                 }
+                //if not then check if the enemy is in check
                 if (mSquares[i].chessPiece.PieceType == ChessPieceType.King && CurrentPlayer != mSquares[i].chessPiece.Player)
                 {
                     mSquares[i].IsCheck = mChessBoard.isEnemyCheck();
@@ -194,6 +207,7 @@ namespace Cecs475.BoardGames.Chess.WpfView
 
                 i++;
             }
+
             OnPropertyChanged(nameof(BoardAdvantage));
             OnPropertyChanged(nameof(CurrentPlayer));
             OnPropertyChanged(nameof(CanUndo));
