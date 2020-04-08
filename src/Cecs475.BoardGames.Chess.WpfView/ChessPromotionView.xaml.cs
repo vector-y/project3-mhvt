@@ -11,7 +11,6 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
 
 namespace Cecs475.BoardGames.Chess.WpfView
@@ -19,7 +18,7 @@ namespace Cecs475.BoardGames.Chess.WpfView
     /// <summary>
     /// Interaction logic for ChessPromotionView.xaml
     /// </summary>
-    public partial class ChessPromotionView : UserControl
+    public partial class ChessPromotionView : Window
     {
         public ChessPromotionView(BoardPosition startPos, BoardPosition endPos)
         {
@@ -30,15 +29,6 @@ namespace Cecs475.BoardGames.Chess.WpfView
             Border b = sender as Border;
             var element = (UIElement)e.Source;
             int col = Grid.GetColumn(element);
-
-        }
-        private void Border_MouseUp(object sender, MouseEventArgs e)
-        {
-
-        }
-        private void Border_MouseLeave(object sender, MouseEventArgs e)
-        {
-
         }
     }
 }
