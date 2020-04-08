@@ -19,7 +19,7 @@
             <ItemsPanelTemplate>
                 <UniformGrid Columns="8" Rows="8"/>
             </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
+        </ItemsControl.ItemsPanel>  
 
         <ItemsControl.Resources>
             <local:ChessImageConverter x:Key="ChessImageConverter"/>
