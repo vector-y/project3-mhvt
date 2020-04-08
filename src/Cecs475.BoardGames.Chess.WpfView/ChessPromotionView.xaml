@@ -7,10 +7,14 @@
         mc:Ignorable="d"
         ResizeMode="NoResize"
         WindowStyle="None"
-        WindowState="Maximized"
         WindowStartupLocation="CenterScreen"
         Title="ChessPromotionView" Height="100" Width="510">
-    <Grid Background="AliceBlue">
+
+    <Window.Resources>
+        <local:ChessViewModel x:Key="vm"/>
+    </Window.Resources>
+    
+    <Grid Background="LightBlue">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="110"/>
             <ColumnDefinition Width="100"/>
@@ -18,26 +22,22 @@
             <ColumnDefinition Width="100"/>
             <ColumnDefinition Width="100"/>
         </Grid.ColumnDefinitions>
+        
         <Grid.RowDefinitions>
             <RowDefinition Height="100"/>
         </Grid.RowDefinitions>
-        <Label Grid.Row="0" Grid.Column="0" Margin="0,0,0,1" Grid.RowSpan="2">Promote Pawn to:</Label>
-        <Border BorderBrush="Red" BorderThickness="1.5" 
-                Height="100" Width="110" Grid.Row="0" Grid.Column="0" >
-        </Border>
-        <Border BorderBrush="Red" BorderThickness="1.5" 
-                Height="100" Width="100" Grid.Row="0" Grid.Column="1" 
-                MouseEnter="Border_MouseEnter" MouseUp="Border_MouseUp" MouseLeave="Border_MouseLeave">
+        
+        <Grid.Resources>
+            <local:ChessPromotionConverter x:Key="ChessPromotionConverter"/>
+        </Grid.Resources>
 
+        <Label Grid.Row="0" Grid.Column="0" Margin="0,0,0,1" Grid.RowSpan="2">Promote Pawn to:</Label>
+
+        <Border BorderBrush="Black" BorderThickness="1.5" 
+                Height="100" Width="100" Grid.Row="0" Grid.Column="1" 
+                MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave" MouseUp="Border_MouseUp">
+            <Image Source="{Binding chessPiece, Converter={StaticResource ChessPromotionConverter}}"/> 
         </Border>
-        <Border BorderBrush="Red" BorderThickness="1.5" 
-                Height="100" Width="100" Grid.Row="0" Grid.Column="2">
-        </Border>
-        <Border BorderBrush="Red" BorderThickness="1.5" 
-                Height="100" Width="100" Grid.Row="0" Grid.Column="3">
-        </Border>
-        <Border BorderBrush="Red" BorderThickness="2" 
-                Height="100" Width="100" Grid.Row="0" Grid.Column="4">
-        </Border>
+        
     </Grid>
 </Window>

@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Cecs475.BoardGames.Chess.WpfView"
              mc:Ignorable="d" 
-             d:DesignHeight="400" d:DesignWidth="400">
+             d:DesignHeight="100" d:DesignWidth="510">
     <UserControl.Resources>
         <local:ChessViewModel x:Key="vm"/>
         <local:ChessBackgroundConverter x:Key="BackgroundColor"/>

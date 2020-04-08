@@ -58,9 +58,12 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Compile Include="ChessAdvantageConverter.cs" />
     <Compile Include="ChessBackgroundConverter.cs" />
+    <Compile Include="ChessCurrentPlayerConverter.cs" />
     <Compile Include="ChessGameFactory.cs" />
     <Compile Include="ChessImageConverter.cs" />
+    <Compile Include="ChessPromotionConverter.cs" />
     <Compile Include="ChessPromotionView.xaml.cs">
       <DependentUpon>ChessPromotionView.xaml</DependentUpon>
     </Compile>

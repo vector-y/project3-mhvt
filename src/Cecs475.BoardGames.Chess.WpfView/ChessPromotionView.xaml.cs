@@ -20,15 +20,47 @@ namespace Cecs475.BoardGames.Chess.WpfView
     /// </summary>
     public partial class ChessPromotionView : Window
     {
-        public ChessPromotionView(BoardPosition startPos, BoardPosition endPos)
+        public ChessPromotionView(ChessViewModel cvm,BoardPosition startPos, BoardPosition endPos)
         {
             InitializeComponent();
+            int currentplayer = cvm.CurrentPlayer;
+            //how to add to the view?
         }
+
         private void Border_MouseEnter(object sender, MouseEventArgs e)
         {
             Border b = sender as Border;
             var element = (UIElement)e.Source;
             int col = Grid.GetColumn(element);
+
+            if(col == 1)
+            {
+                b.Background = Brushes.LightGreen;
+
+            }
+            if (col == 2)
+            {
+                b.Background = Brushes.Orange;
+            }
+            if (col == 3)
+            {
+                b.Background = Brushes.LightYellow;
+            }
+            if (col == 4)
+            {
+                b.Background = Brushes.DarkBlue;
+            }
+        }
+
+        private void Border_MouseLeave(object sender, MouseEventArgs e)
+        {
+            Border b = sender as Border;
+            b.Background = Brushes.LightBlue;
+        }
+
+        private void Border_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+
         }
     }
 }

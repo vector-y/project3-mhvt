@@ -40,6 +40,7 @@ namespace Cecs475.BoardGames.Chess.WpfView
 
             foreach(var move in vm.PossibleMoves)
             {
+                //if possible move
                 if(selectedSquare != null) {
                     if (move.StartPosition == selectedSquare.Position && move.EndPosition == square.Position)
                     {
@@ -47,6 +48,7 @@ namespace Cecs475.BoardGames.Chess.WpfView
                     }
                 }
                 
+                //if its a valid piece to move
                 if(move.StartPosition == square.Position)
                 {
                     square.IsHighlighted = true;
@@ -68,18 +70,18 @@ namespace Cecs475.BoardGames.Chess.WpfView
                     {
                         selectedSquare.IsSelected = false;
                     }
+                    //initialize selectedSquare
                     selectedSquare = square;
                     square.IsHighlighted = true;
                     square.IsSelected = true;
                 }
             }
-            if(selectedSquare != null)
+            //if there is a selected square, 
+            if (selectedSquare != null && selectedSquare.Position != square.Position)
             {
-                if(selectedSquare.Position != square.Position)
-                {
-                    vm.ApplyMove(selectedSquare.Position, square.Position);
-                    selectedSquare.IsSelected = false;  
-                }
+                vm.ApplyMove(selectedSquare.Position, square.Position);
+                selectedSquare.IsSelected = false;
+                selectedSquare = null;
             }
 
         }
