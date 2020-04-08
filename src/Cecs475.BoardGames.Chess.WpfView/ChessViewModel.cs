@@ -165,10 +165,24 @@ namespace Cecs475.BoardGames.Chess.WpfView
             // Validate the move as possible.
             foreach (var move in possMoves)
             {
+                
                 if (move.EndPosition.Equals(end_position) && move.StartPosition.Equals(start_position))
                 {
-                    mChessBoard.ApplyMove(move);
-                    break;
+                    if (move.MoveType == ChessMoveType.PawnPromote)
+                    {
+                        //open new window
+                        //in new window return chesspieceType
+                        //apply in the new window and break
+                        var pawnPromotionSelect = new ChessPromotionView(this,start_position, end_position);
+                        pawnPromotionSelect.Show();
+                        break;
+                    }
+                    else
+                    {
+                        mChessBoard.ApplyMove(move);
+                        break;
+                    }
+                    
                 }
             }
 

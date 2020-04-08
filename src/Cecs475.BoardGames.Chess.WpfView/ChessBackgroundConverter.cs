@@ -26,6 +26,10 @@ namespace Cecs475.BoardGames.Chess.WpfView
             bool isSelected = (bool)values[2];
             bool isPossible = (bool)values[3];
             bool isCheck = (bool)values[4];
+            if (isSelected)
+            {
+                return SELECTED_BRUSH;
+            }
             if (isCheck)
             {
                 return CHECK_BRUSH;
@@ -34,10 +38,7 @@ namespace Cecs475.BoardGames.Chess.WpfView
             {
                 return POSSIBLE_MOVE_BRUSH;
             }
-            if (isSelected)
-            {
-                return SELECTED_BRUSH;
-            }
+           
             if (isHighlighted)
             {
                 return POSSIBLE_MOVE_BRUSH;

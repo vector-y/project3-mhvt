@@ -20,12 +20,12 @@ namespace Cecs475.BoardGames.Chess.WpfView
 
         public IValueConverter CreateBoardAdvantageConverter()
         {
-            return null;
+            return new ChessAdvantageConverter();
         }
 
         public IValueConverter CreateCurrentPlayerConverter()
         {
-            return null;
+            return new ChessCurrentPlayerConverter();
         }
 
         public IWpfGameView CreateGameView()
