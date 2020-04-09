@@ -27,7 +27,8 @@ namespace Cecs475.BoardGames.Chess.WpfView
                 {
                     playerString = "black";
                 }
-                return new BitmapImage(new Uri("/Cecs475.BoardGames.Chess.WpfView;component/Resources/" + playerString  + "Bishop.png", UriKind.Relative));
+                return new BitmapImage(new Uri("/Cecs475.BoardGames.Chess.WpfView;component/Resources/" + playerString + "Bishop.png", UriKind.Relative));
+
             }
             catch (Exception e) {
                 return null;

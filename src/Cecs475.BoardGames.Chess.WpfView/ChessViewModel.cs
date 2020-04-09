@@ -188,6 +188,12 @@ namespace Cecs475.BoardGames.Chess.WpfView
 
             RebindState();
         }
+        internal void ApplyPromotionMove(BoardPosition start_position, BoardPosition end_position,ChessPieceType pieceType)
+        {
+            mChessBoard.ApplyMove(new ChessMove(start_position,end_position,pieceType));
+            RebindState();
+        }
+
 
         public void RebindState()
         {
