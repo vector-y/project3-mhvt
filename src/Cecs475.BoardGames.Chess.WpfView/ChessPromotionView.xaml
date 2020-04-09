@@ -36,8 +36,23 @@
         <Border BorderBrush="Black" BorderThickness="1.5" 
                 Height="100" Width="100" Grid.Row="0" Grid.Column="1" 
                 MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave" MouseUp="Border_MouseUp">
-            <Image Source="{Binding chessPiece, Converter={StaticResource ChessPromotionConverter}}"/> 
+            <Image Source="{DynamicResource ChessPromotionBishop}"/> 
         </Border>
-        
+        <Border BorderBrush="Black" BorderThickness="1.5" 
+                Height="100" Width="100" Grid.Row="0" Grid.Column="2" 
+                MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave" MouseUp="Border_MouseUp">
+            <Image Source="{DynamicResource ChessPromotionKnight}"/>
+        </Border>
+        <Border BorderBrush="Black" BorderThickness="1.5" 
+                Height="100" Width="100" Grid.Row="0" Grid.Column="3" 
+                MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave" MouseUp="Border_MouseUp">
+            <Image Source="{DynamicResource ChessPromotionRook}"/>
+        </Border>
+        <Border BorderBrush="Black" BorderThickness="1.5" 
+                Height="100" Width="100" Grid.Row="0" Grid.Column="4" 
+                MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave" MouseUp="Border_MouseUp">
+            <Image Source="{DynamicResource ChessPromotionQueen}"/>
+        </Border>
+
     </Grid>
 </Window>
