@@ -8,6 +8,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Cecs475.BoardGames.Chess.WpfView
 {
@@ -180,6 +181,7 @@ namespace Cecs475.BoardGames.Chess.WpfView
                     else
                     {
                         mChessBoard.ApplyMove(move);
+                        
                         break;
                     }
                     
@@ -187,13 +189,21 @@ namespace Cecs475.BoardGames.Chess.WpfView
             }
 
             RebindState();
+            if (mChessBoard.IsFinished)
+            {
+                GameFinished?.Invoke(this, new EventArgs());
+            }
         }
         internal void ApplyPromotionMove(BoardPosition start_position, BoardPosition end_position,ChessPieceType pieceType)
         {
             mChessBoard.ApplyMove(new ChessMove(start_position,end_position,pieceType));
             RebindState();
-        }
+            if (mChessBoard.IsFinished)
+            {
 
+                GameFinished?.Invoke(this, new EventArgs());
+            }
+        }
 
         public void RebindState()
         {
@@ -217,7 +227,7 @@ namespace Cecs475.BoardGames.Chess.WpfView
                 //if peice is in check and it's their turn, check if he is in check
                 if (mSquares[i].chessPiece.PieceType == ChessPieceType.King && CurrentPlayer == mSquares[i].chessPiece.Player)
                 {
-                    mSquares[i].IsCheck = mChessBoard.IsCheck;
+                    mSquares[i].IsCheck = mChessBoard.IsCheck || mChessBoard.IsCheckmate;
                 }
                 //if not then check if the enemy is in check
                 if (mSquares[i].chessPiece.PieceType == ChessPieceType.King && CurrentPlayer != mSquares[i].chessPiece.Player)
