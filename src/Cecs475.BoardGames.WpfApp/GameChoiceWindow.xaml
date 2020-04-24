@@ -11,14 +11,6 @@
         mc:Ignorable="d"
         Title="Let's play a game!" Width="300" FontSize="16"
         SizeToContent="Height" WindowStartupLocation="CenterScreen">
-    <Window.Resources>
-        <!-- This array contains all the game types known by the application -->
-        <x:Array x:Key="GameTypes" Type="{x:Type view:IWpfGameFactory}">
-            <othello:OthelloGameFactory/>
-            <chess:ChessGameFactory/>
-            <tictactoe:TicTacToeGameFactory/>
-        </x:Array>
-    </Window.Resources>
     <StackPanel>
         <StackPanel.Resources>
             <Style TargetType="{x:Type Button}">
