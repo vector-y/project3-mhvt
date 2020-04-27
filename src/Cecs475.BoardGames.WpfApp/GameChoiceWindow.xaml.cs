@@ -1,6 +1,7 @@
 ﻿using Cecs475.BoardGames.WpfView;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -23,29 +24,43 @@ namespace Cecs475.BoardGames.WpfApp {
 			InitializeComponent();
 
 			Type iWpfGameFactory = typeof(IWpfGameFactory);
-			Assembly tttAssembly = Assembly.LoadFrom("../../../../src/Cecs475.BoardGames.WpfApp/bin/Debug/games/Cecs475.BoardGames.Chess.Model.dll");
-			tttAssembly = Assembly.LoadFrom("../../../../src/Cecs475.BoardGames.WpfApp/bin/Debug/games/Cecs475.BoardGames.Othello.Model.dll");
 
-			var gameTypes = AppDomain.CurrentDomain.GetAssemblies()
-				.SelectMany(a => a.GetTypes())
-				.Where(t => iWpfGameFactory.IsAssignableFrom(t));
+			Assembly current = Assembly.GetExecutingAssembly();
+			
+			var gamesPath = "../../../../src/Cecs475.BoardGames.WpfApp/bin/Debug/games";
 
-			foreach(var games in gameTypes)
-			{
-				var con = games.GetConstructor(Type.EmptyTypes);
-				//how to invoke? 
-				//var invoke = con.Invoke(new object[0]);
+			DirectoryInfo d = new DirectoryInfo(gamesPath);
+			foreach(var file in d.GetFiles("*.dll")) {
+				//is this how you load every file?
+				Assembly tttAssembly = Assembly.LoadFrom(gamesPath + "/"+ file.Name);
 			}
-			this.Resources.Add("GameTypes", gameTypes);
+
+			/*var gameTypes = AppDomain.CurrentDomain.GetAssemblies()
+				.SelectMany(a => a.GetTypes())
+				.Where(t => iWpfGameFactory.IsAssignableFrom(t) && t.IsClass);*/
+
+			//GetTypes gives an error from above so create an alternate
+			foreach(var i in AppDomain.CurrentDomain.GetAssemblies())
+			{
+				var check = i.GetTypes();
+			}
 
 
+			//is this how to do it?
+			//create list, invoke the gameTypes and then add to a list of objects
+			/*List<object> gamesList = new List<object>();
+			foreach (var games in gameTypes)
+			{
+				var type = games.GetType();
+				var con = type.GetConstructor(Type.EmptyTypes);
+				//how to invoke? 
+				var invoke = con.Invoke(new object[0]);
+				gamesList.Add(invoke);
+			}
+			IEnumerable<object> IEGamesList = gamesList;
+			this.Resources.Add("GameTypes", IEGamesList);
 
-			/*foreach(var games in gameTypes) {
-				var gameConstructors = games.GetConstructor(Type.EmptyTypes);
-				var gameBoard = gameConstructors.Invoke(new object[0]);
-				this.Resources.Add("GameTypes", gameBoard);
-
-			}*/
+*/
 
 
 		}
