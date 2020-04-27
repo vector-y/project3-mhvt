@@ -35,32 +35,32 @@ namespace Cecs475.BoardGames.WpfApp {
 				Assembly tttAssembly = Assembly.LoadFrom(gamesPath + "/"+ file.Name);
 			}
 
-			/*var gameTypes = AppDomain.CurrentDomain.GetAssemblies()
+			var gameTypes = AppDomain.CurrentDomain.GetAssemblies()
 				.SelectMany(a => a.GetTypes())
-				.Where(t => iWpfGameFactory.IsAssignableFrom(t) && t.IsClass);*/
+				.Where(t => iWpfGameFactory.IsAssignableFrom(t) && t.IsClass);
 
 			//GetTypes gives an error from above so create an alternate
-			foreach(var i in AppDomain.CurrentDomain.GetAssemblies())
+			/*foreach(var i in AppDomain.CurrentDomain.GetAssemblies())
 			{
 				var check = i.GetTypes();
-			}
+			}*/
 
 
 			//is this how to do it?
 			//create list, invoke the gameTypes and then add to a list of objects
-			/*List<object> gamesList = new List<object>();
+			List<object> gamesList = new List<object>();
 			foreach (var games in gameTypes)
 			{
 				var type = games.GetType();
 				var con = type.GetConstructor(Type.EmptyTypes);
 				//how to invoke? 
-				var invoke = con.Invoke(new object[0]);
-				gamesList.Add(invoke);
+				var conObject = con.Invoke(new object[0]);
+				gamesList.Add(conObject);
 			}
 			IEnumerable<object> IEGamesList = gamesList;
 			this.Resources.Add("GameTypes", IEGamesList);
 
-*/
+
 
 
 		}
