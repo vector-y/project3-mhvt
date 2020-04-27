@@ -51,7 +51,7 @@ namespace Cecs475.BoardGames.WpfApp {
 			List<object> gamesList = new List<object>();
 			foreach (var games in gameTypes)
 			{
-				var type = games.GetType();
+				var type = games;
 				var con = type.GetConstructor(Type.EmptyTypes);
 				//how to invoke? 
 				var conObject = con.Invoke(new object[0]);
