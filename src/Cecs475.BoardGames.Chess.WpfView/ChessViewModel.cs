@@ -9,13 +9,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using Cecs475.BoardGames.ComputerOpponent;
 
 namespace Cecs475.BoardGames.Chess.WpfView
 {
     public class ChessSquare : INotifyPropertyChanged
     {
         private ChessPiece mChessPiece;
-
+        
         public ChessPiece chessPiece
         {
             get
@@ -111,6 +112,10 @@ namespace Cecs475.BoardGames.Chess.WpfView
         public event EventHandler GameFinished;
         public event PropertyChangedEventHandler PropertyChanged;
 
+        private const int MAX_AI_DEPTH = 3;
+        private IGameAi mGameAi = new MinimaxAi(MAX_AI_DEPTH);
+
+
         public ChessViewModel()
         {
             mChessBoard = new ChessBoard();
@@ -146,11 +151,17 @@ namespace Cecs475.BoardGames.Chess.WpfView
 
         public bool CanUndo => mChessBoard.MoveHistory.Any();
 
+        public NumberOfPlayers Players { get; set; }
+
         public void UndoMove()
         {
             if (CanUndo)
             {
                 mChessBoard.UndoLastMove();
+                if (Players == NumberOfPlayers.One && CanUndo)
+                {
+                    mChessBoard.UndoLastMove();
+                }
                 RebindState();
             }
            
@@ -187,6 +198,15 @@ namespace Cecs475.BoardGames.Chess.WpfView
                     
                 }
             }
+            if (Players == NumberOfPlayers.One && !mChessBoard.IsFinished)
+            {
+                var bestMove = mGameAi.FindBestMove(mChessBoard);
+                if (bestMove != null)
+                {
+                    mChessBoard.ApplyMove(bestMove as ChessMove);
+                }
+            }
+
 
             RebindState();
             if (mChessBoard.IsFinished)
