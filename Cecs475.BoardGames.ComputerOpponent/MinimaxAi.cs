@@ -25,8 +25,49 @@ namespace Cecs475.BoardGames.ComputerOpponent {
 		}
 
 		private static MinimaxBestMove FindBestMove(IGameBoard b, long alpha, long beta, int depthLeft) {
+			if (depthLeft == 0 || b.IsFinished)
+			{
+				return new MinimaxBestMove()
+				{
+					Move = null
+				};
+			}
+			//how do u know depending on alpha and beta??
+			//bestWeight = -inf if maximizingPlayer, otherwise +inf
+			bool maximizing;
+			long bestWeight;
+			if (b.CurrentPlayer == 1)
+			{
+				maximizing = true;
+				bestWeight = long.MinValue;
+			}
+			else
+			{
+				maximizing = false;
+				bestWeight = long.MaxValue;
+			}
+
+			IGameMove bestMove = null;
+			var possible_moves = b.GetPossibleMoves();
+			foreach (var move in possible_moves)
+			{
+				b.ApplyMove(move);
+				var w = FindBestMove(b, alpha, beta, depthLeft).Weight;
+				b.UndoLastMove();
+				if (maximizing == true && w > bestWeight)
+				{
+					bestWeight = w;
+					bestMove = move;
+				}
+				else if (maximizing == false && w < bestWeight)
+				{
+					bestWeight = w;
+					bestMove = move;
+				}
+			}
 			return new MinimaxBestMove() {
-				Move = null
+				Weight = bestWeight,
+				Move = bestMove
 			};
 		}
 
