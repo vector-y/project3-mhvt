@@ -30,7 +30,9 @@ namespace Cecs475.BoardGames.Chess.WpfView
 
         public IWpfGameView CreateGameView(NumberOfPlayers players)
         {
-            return new ChessView();
+            var view = new ChessView();
+            view.ChessViewModel.Players = players;
+            return view;
         }
     }
 }
