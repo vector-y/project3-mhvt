@@ -20,57 +20,51 @@ namespace Cecs475.BoardGames.WpfApp {
 	/// Interaction logic for GameChoiceWindow.xaml
 	/// </summary>
 	public partial class GameChoiceWindow : Window {
-		public GameChoiceWindow() {
-			InitializeComponent();
+        public GameChoiceWindow()
+        {
+            InitializeComponent();
 
-			Type iWpfGameFactory = typeof(IWpfGameFactory);
+            Type iWpfGameFactory = typeof(IWpfGameFactory);
 
-			Assembly current = Assembly.GetExecutingAssembly();
-			
-			var gamesPath = "../../../../src/Cecs475.BoardGames.WpfApp/bin/Debug/games";
+            Assembly current = Assembly.GetExecutingAssembly();
 
-			DirectoryInfo d = new DirectoryInfo(gamesPath);
-			foreach(var file in d.GetFiles("*.dll")) {
-				//is this how you load every file?
-				Assembly tttAssembly = Assembly.LoadFrom(gamesPath + "/"+ file.Name);
-			}
+            var gamesPath = "../../../../src/Cecs475.BoardGames.WpfApp/bin/Debug/games";
 
-			var gameTypes = AppDomain.CurrentDomain.GetAssemblies()
-				.SelectMany(a => a.GetTypes())
-				.Where(t => iWpfGameFactory.IsAssignableFrom(t) && t.IsClass);
+            DirectoryInfo d = new DirectoryInfo(gamesPath);
+            foreach (var file in d.GetFiles("*.dll"))
+            {
+                //is this how you load every file?
+                Assembly tttAssembly = Assembly.LoadFrom(gamesPath + "/" + file.Name);
+            }
 
-			//GetTypes gives an error from above so create an alternate
-			/*foreach(var i in AppDomain.CurrentDomain.GetAssemblies())
-			{
-				var check = i.GetTypes();
-			}*/
+            var gameTypes = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => a.GetTypes())
+                .Where(t => iWpfGameFactory.IsAssignableFrom(t) && t.IsClass);
 
-
-			//is this how to do it?
-			//create list, invoke the gameTypes and then add to a list of objects
-			List<object> gamesList = new List<object>();
-			foreach (var games in gameTypes)
-			{
-				var type = games;
-				var con = type.GetConstructor(Type.EmptyTypes);
-				//how to invoke? 
-				var conObject = con.Invoke(new object[0]);
-				gamesList.Add(conObject);
-			}
-			IEnumerable<object> IEGamesList = gamesList;
-			this.Resources.Add("GameTypes", IEGamesList);
+            //is this how to do it?
+            //create list, invoke the gameTypes and then add to a list of objects
+            List<object> gamesList = new List<object>();
+            foreach (var games in gameTypes)
+            {
+                var constructor = games.GetConstructor(Type.EmptyTypes);
+                var conObject = constructor.Invoke(new object[0]);
+                //or you can construct with 
+                //var conObject = Activator.CreateInstance(games);
+                gamesList.Add(conObject);
+            }
+            IEnumerable<object> IEGamesList = gamesList;
+            this.Resources.Add("GameTypes", IEGamesList);
 
 
+        }
 
-
-		}
-
-		private void Button_Click(object sender, RoutedEventArgs e) {
+        private void Button_Click(object sender, RoutedEventArgs e) {
 			Button b = sender as Button;
 			// Retrieve the game type bound to the button
 			IWpfGameFactory gameType = b.DataContext as IWpfGameFactory;
 			// Construct a GameWindow to play the game.
-			var gameWindow = new GameWindow(gameType) {
+			var gameWindow = new GameWindow(gameType,
+				mHumanBtn.IsChecked.Value ? NumberOfPlayers.Two : NumberOfPlayers.One){
 				Title = gameType.GameName
 			};
 			// When the GameWindow closes, we want to show this window again.
