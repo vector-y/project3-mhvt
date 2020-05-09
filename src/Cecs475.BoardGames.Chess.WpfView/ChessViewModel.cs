@@ -112,7 +112,7 @@ namespace Cecs475.BoardGames.Chess.WpfView
         public event EventHandler GameFinished;
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private const int MAX_AI_DEPTH = 3;
+        private const int MAX_AI_DEPTH = 4;
         private IGameAi mGameAi = new MinimaxAi(MAX_AI_DEPTH);
 
 
@@ -206,8 +206,8 @@ namespace Cecs475.BoardGames.Chess.WpfView
                     mChessBoard.ApplyMove(bestMove as ChessMove);
                 }
             }
-
-
+            string message = mChessBoard.BoardWeight.ToString();
+            MessageBox.Show(message);
             RebindState();
             if (mChessBoard.IsFinished)
             {

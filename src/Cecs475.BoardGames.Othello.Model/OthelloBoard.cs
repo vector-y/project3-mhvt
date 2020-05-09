@@ -28,8 +28,7 @@ namespace Cecs475.BoardGames.Othello.Model {
 				Count = count;
 			}
 		}
-
-		#region Member variables
+		#region
 		public const int BOARD_SIZE = 8;
 		private int mCurrentPlayer = 1;
 
