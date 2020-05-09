@@ -37,16 +37,16 @@ namespace Cecs475.BoardGames.ComputerOpponent {
 			
 			bool isMaximizing;
 			long bestWeight;
-			if (b.CurrentPlayer == 1)
+			if (b.CurrentPlayer == 2)
 			{
 				isMaximizing = false;
-				bestWeight = long.MaxValue;
+				bestWeight = beta;
 			}
 			else
 			{
 				isMaximizing = true;
-				bestWeight = long.MinValue;
-			}
+				bestWeight = alpha;
+			} 
 
 			IGameMove bestMove = null;
 			var possible_moves = b.GetPossibleMoves();
@@ -59,11 +59,19 @@ namespace Cecs475.BoardGames.ComputerOpponent {
 				{
 					bestWeight = w;
 					bestMove = move;
+					//want the maximum
+					alpha = Math.Max(alpha, w);
 				}
 				else if (isMaximizing == false && w < bestWeight)
 				{
 					bestWeight = w;
 					bestMove = move;
+					//want the minimum
+					beta = Math.Min(beta, w);
+				}
+				if(alpha >= beta)
+				{
+					break;
 				}
 			}
 			return new MinimaxBestMove() {

@@ -162,7 +162,7 @@ namespace Cecs475.BoardGames.Chess.Model {
 			{
 				return adv;
 			}
-		}
+	}
 
 		public IReadOnlyList<ChessMove> MoveHistory => mMoveHistory;
 
@@ -257,7 +257,6 @@ namespace Cecs475.BoardGames.Chess.Model {
 			ISet<BoardPosition> allAttackPositions = GetAttackedPositions(CurrentPlayer);
 
 			//Console.WriteLine("Getting possible moves for player" + CurrentPlayer);
-
 			foreach (BoardPosition current_position in BoardPosition.GetRectangularPositions(BoardSize, BoardSize))
 			{
 				ChessPiece piece = GetPieceAtPosition(current_position);
@@ -900,7 +899,108 @@ namespace Cecs475.BoardGames.Chess.Model {
 		}
 		IReadOnlyList<IGameMove> IGameBoard.MoveHistory => mMoveHistory;
 
-		public long BoardWeight => throw new NotImplementedException();
+		public long BoardWeight
+		{
+			get
+			{
+				return getBoardWeight();
+			}
+		}
+
+		private long getBoardWeight()
+		{
+			long boardWeight = CurrentAdvantage.Player == 1 ? CurrentAdvantage.Advantage : -CurrentAdvantage.Advantage;
+			
+			foreach (BoardPosition current_position in BoardPosition.GetRectangularPositions(BoardSize, BoardSize))
+			{
+				ChessPieceType current_piece_type = GetPieceAtPosition(current_position).PieceType;
+				int player = GetPlayerAtPosition(current_position);
+				//calculate how much the pawn has moved
+				if (current_piece_type == ChessPieceType.Pawn)
+				{
+					int pawn_row = current_position.Row;
+
+					if (player == 1)
+					{
+						int starting_row = 1;
+						boardWeight = boardWeight + (pawn_row - starting_row);
+					}
+					if (player == 2)
+					{
+						int starting_row = 6;
+						boardWeight = boardWeight + (starting_row - pawn_row);
+					}
+				}
+				//get attackmoves of the current position
+				HashSet<BoardPosition> attack_moves = null;
+				int attacked_value = 0;
+				if (current_piece_type == ChessPieceType.Pawn)
+				{
+					attack_moves = getPawnAttackMoves(current_position,player);
+				}
+				if (current_piece_type == ChessPieceType.Rook)
+				{
+					attack_moves = getRookAttackMoves(current_position);
+					attacked_value = 2;
+				}
+				if (current_piece_type == ChessPieceType.Knight)
+				{
+					attack_moves = getKnightAttackMoves(current_position);
+					attacked_value = 1;
+				}
+				if (current_piece_type == ChessPieceType.Bishop)
+				{
+					attack_moves = getBishopAttackMoves(current_position);
+					attacked_value = 1;
+				}
+				if (current_piece_type == ChessPieceType.King)
+				{
+					attack_moves = getKingAttackMoves(current_position);
+					attacked_value = 4;
+				}
+				if (current_piece_type == ChessPieceType.Queen)
+				{
+					attack_moves = getQueenAttackMoves(current_position);
+					attacked_value = 5;
+				}
+				
+				//check if position is protected
+				foreach (BoardPosition attack_positions in attack_moves)
+				{
+					var piece_at_attacked_position = GetPieceAtPosition(attack_positions).PieceType;
+					if (piece_at_attacked_position == ChessPieceType.Knight || piece_at_attacked_position == ChessPieceType.Bishop)
+					{
+						if (player == 1)
+						{
+							boardWeight += 1;
+						}
+						if (player == 2)
+						{
+							boardWeight -= 1;
+						}
+					}
+				}
+				//check if position is attacked by enemy player
+				int enemyPlayer = (player == 1) ? 2 : 1;
+				bool isAttacked = PositionIsAttacked(current_position, enemyPlayer);
+				if (isAttacked)
+				{
+					if (player == 1)
+					{
+						//minus because oponent is player 2 who is attacking this position
+						boardWeight -= attacked_value;
+					}
+					else if (player == 2)
+					{
+						boardWeight += attacked_value;
+					}
+				}
+
+			}
+			return boardWeight;
+		}
+
+
 		#endregion
 
 		// You may or may not need to add code to this constructor.
