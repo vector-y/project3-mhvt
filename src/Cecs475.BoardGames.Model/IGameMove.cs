@@ -10,5 +10,6 @@ namespace Cecs475.BoardGames.Model {
 		/// this property is undefined.
 		/// </summary>
 		int Player { get; }
+
 	}
 }
