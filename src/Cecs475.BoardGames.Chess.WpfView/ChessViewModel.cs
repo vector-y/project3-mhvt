@@ -171,13 +171,13 @@ namespace Cecs475.BoardGames.Chess.WpfView
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
 
-        internal void ApplyMove(BoardPosition start_position, BoardPosition end_position)
+        internal async Task ApplyMoveAsync(BoardPosition start_position, BoardPosition end_position)
         {
             var possMoves = mChessBoard.GetPossibleMoves() as IEnumerable<ChessMove>;
             // Validate the move as possible.
             foreach (var move in possMoves)
             {
-                
+
                 if (move.EndPosition.Equals(end_position) && move.StartPosition.Equals(start_position))
                 {
                     if (move.MoveType == ChessMoveType.PawnPromote)
@@ -185,22 +185,22 @@ namespace Cecs475.BoardGames.Chess.WpfView
                         //open new window
                         //in new window return chesspieceType
                         //apply in the new window and break
-                        var pawnPromotionSelect = new ChessPromotionView(this,start_position, end_position);
+                        var pawnPromotionSelect = new ChessPromotionView(this, start_position, end_position);
                         pawnPromotionSelect.Show();
                         break;
                     }
                     else
                     {
                         mChessBoard.ApplyMove(move);
-                        
                         break;
                     }
-                    
+
                 }
             }
+            RebindState();
             if (Players == NumberOfPlayers.One && !mChessBoard.IsFinished)
             {
-                var bestMove = mGameAi.FindBestMove(mChessBoard);
+                var bestMove = await Task.Run(() => mGameAi.FindBestMove(mChessBoard));
                 if (bestMove != null)
                 {
                     mChessBoard.ApplyMove(bestMove as ChessMove);

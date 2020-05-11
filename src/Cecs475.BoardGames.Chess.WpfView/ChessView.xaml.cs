@@ -32,32 +32,43 @@ namespace Cecs475.BoardGames.Chess.WpfView
 
         public IGameViewModel ViewModel => ChessViewModel;
 
+        public bool isEnabled { get; private set; } = true;
+
         private void Border_MouseEnter(object sender, MouseEventArgs e)
         {
+            if (!isEnabled)
+            {
+                return;
+            }
             Border b = sender as Border;
             var square = b.DataContext as ChessSquare;
             var vm = FindResource("vm") as ChessViewModel;
 
-            foreach(var move in vm.PossibleMoves)
+            foreach (var move in vm.PossibleMoves)
             {
-                //if possible move
-                if(selectedSquare != null) {
+                //if possible 
+                if (selectedSquare != null)
+                {
                     if (move.StartPosition == selectedSquare.Position && move.EndPosition == square.Position)
                     {
                         square.IsPossible = true;
                     }
                 }
-                
+
                 //if its a valid piece to move
-                if(move.StartPosition == square.Position)
+                if (move.StartPosition == square.Position)
                 {
                     square.IsHighlighted = true;
                 }
             }
         }
 
-        private void Border_MouseUp(object sender, MouseButtonEventArgs e)
+        private async void Border_MouseUp(object sender, MouseButtonEventArgs e)
         {
+            if (!isEnabled)
+            {
+                return;
+            }
             Border b = sender as Border;
             var square = b.DataContext as ChessSquare;
             var vm = FindResource("vm") as ChessViewModel;
@@ -79,7 +90,9 @@ namespace Cecs475.BoardGames.Chess.WpfView
             //if there is a selected square, 
             if (selectedSquare != null && selectedSquare.Position != square.Position)
             {
-                vm.ApplyMove(selectedSquare.Position, square.Position);
+                isEnabled = false;
+                await vm.ApplyMoveAsync(selectedSquare.Position, square.Position);
+                isEnabled = true;
                 selectedSquare.IsSelected = false;
                 selectedSquare = null;
             }
