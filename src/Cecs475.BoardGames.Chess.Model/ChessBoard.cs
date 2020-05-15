@@ -476,7 +476,6 @@ namespace Cecs475.BoardGames.Chess.Model
                 counter.Add(1);
             }
             adv = setAdvantage();
-            SetBoardWeight();
             CurrentPlayer = (CurrentPlayer == 1) ? 2 : 1;
             //Console.WriteLine("1. Counter:");
             printCounter();
@@ -649,7 +648,6 @@ namespace Cecs475.BoardGames.Chess.Model
                 //Console.WriteLine("1. Counter:");
                 printCounter();
                 adv = setAdvantage();
-                SetBoardWeight();
                 CurrentPlayer = (CurrentPlayer == 1) ? 2 : 1;
                 mMoves = null;
                 //Console.WriteLine("currentpLayer is now" + currentPlayer);
@@ -877,14 +875,16 @@ namespace Cecs475.BoardGames.Chess.Model
 
         public long BoardWeight
         {
-            get; private set;
+            get
+            {
+                return GetBoardWeight();
+            }
         }
         public List<ChessMove> mMoves { get; private set; }
 
-        private void SetBoardWeight()
+        private long GetBoardWeight()
         {
-            /*            BoardWeight = CurrentAdvantage.Player == 1 ? CurrentAdvantage.Advantage : -CurrentAdvantage.Advantage; */
-            BoardWeight = 0;
+            long board_weight = CurrentAdvantage.Player == 1 ? CurrentAdvantage.Advantage : -CurrentAdvantage.Advantage; 
 
             foreach (BoardPosition current_position in BoardPosition.GetRectangularPositions(BoardSize, BoardSize))
             {
@@ -899,13 +899,13 @@ namespace Cecs475.BoardGames.Chess.Model
                     if (player == 1)
                     {
                         int starting_row = 6;
-                        BoardWeight = BoardWeight + (starting_row - pawn_row);
+                        board_weight = board_weight + (starting_row - pawn_row);
                     }
 
                     if (player == 2)
                     {
                         int starting_row = 1;
-                        BoardWeight = BoardWeight - (pawn_row - starting_row);
+                        board_weight = board_weight - (pawn_row - starting_row);
                     }
                 }
                 //get attackmoves of the current position
@@ -953,11 +953,11 @@ namespace Cecs475.BoardGames.Chess.Model
                         {
                             if (player == 1)
                             {
-                                BoardWeight += 1;
+                                board_weight += 1;
                             }
                             if (player == 2)
                             {
-                                BoardWeight -= 1;
+                                board_weight -= 1;
                             }
                         }
                     }
@@ -970,15 +970,15 @@ namespace Cecs475.BoardGames.Chess.Model
                     if (player == 1)
                     {
                         //minus because oponent is player 2 who is attacking this position
-                        BoardWeight -= attacked_value;
+                        board_weight -= attacked_value;
                     }
                     if (player == 2)
                     {
-                        BoardWeight += attacked_value;
+                        board_weight += attacked_value;
                     }
                 }
-
             }
+            return board_weight;
         }
 
 
