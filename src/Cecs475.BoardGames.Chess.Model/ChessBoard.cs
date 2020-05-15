@@ -884,8 +884,8 @@ namespace Cecs475.BoardGames.Chess.Model
 
         private long GetBoardWeight()
         {
-            long board_weight = CurrentAdvantage.Player == 1 ? CurrentAdvantage.Advantage : -CurrentAdvantage.Advantage; 
-
+            long board_weight = CurrentAdvantage.Player == 1 ? CurrentAdvantage.Advantage : -CurrentAdvantage.Advantage;
+            List<BoardPosition> attacked_positions = new List<BoardPosition>();
             foreach (BoardPosition current_position in BoardPosition.GetRectangularPositions(BoardSize, BoardSize))
             {
                 ChessPiece piece = GetPieceAtPosition(current_position);
@@ -915,31 +915,27 @@ namespace Cecs475.BoardGames.Chess.Model
                 {
                     attack_moves = getPawnAttackMoves(current_position, player);
                 }
-                if (current_piece_type == ChessPieceType.Rook)
+                else if (current_piece_type == ChessPieceType.Rook)
                 {
                     attack_moves = getRookAttackMoves(current_position);
-                    attacked_value = 2;
                 }
-                if (current_piece_type == ChessPieceType.Knight)
+                else if (current_piece_type == ChessPieceType.Knight)
                 {
                     attack_moves = getKnightAttackMoves(current_position);
-                    attacked_value = 1;
                 }
-                if (current_piece_type == ChessPieceType.Bishop)
+                else if (current_piece_type == ChessPieceType.Bishop)
                 {
                     attack_moves = getBishopAttackMoves(current_position);
-                    attacked_value = 1;
                 }
-                if (current_piece_type == ChessPieceType.King)
+                else if (current_piece_type == ChessPieceType.King)
                 {
                     attack_moves = getKingAttackMoves(current_position);
-                    attacked_value = 4;
                 }
-                if (current_piece_type == ChessPieceType.Queen)
+                else if (current_piece_type == ChessPieceType.Queen)
                 {
                     attack_moves = getQueenAttackMoves(current_position);
-                    attacked_value = 5;
                 }
+
                 //check if protected
                 if (attack_moves != null)
                 {
@@ -960,10 +956,48 @@ namespace Cecs475.BoardGames.Chess.Model
                                 board_weight -= 1;
                             }
                         }
+                        //else its not the same player then it is protected
+                        else if (attacked_player != player && attacked_player != 0 && !attacked_positions.Contains(attack_positions))
+                        {
+                            if (piece_at_attacked_position == ChessPieceType.Rook)
+                            {
+                                attacked_value = 2;
+                            }
+                            else if (piece_at_attacked_position == ChessPieceType.Knight)
+                            {
+                                attacked_value = 1;
+                            }
+                            else if (piece_at_attacked_position == ChessPieceType.Bishop)
+                            {
+                                attacked_value = 1;
+                            }
+                            else if (piece_at_attacked_position == ChessPieceType.King)
+                            {
+                                attacked_value = 4;
+                            }
+                            else if (piece_at_attacked_position == ChessPieceType.Queen)
+                            {
+                                attacked_value = 5;
+                            }
+                            else
+                            {
+                                attacked_value = 0;
+                            }
+
+                            if (player == 1)
+                            {
+                                board_weight += attacked_value;
+                            }
+                            else if (player == 2)
+                            {
+                                board_weight -= attacked_value;
+                            }
+                            attacked_positions.Add(attack_positions);
+                        }
                     }
                 }
                 //check if position is attacked by enemy player
-                int enemyPlayer = (player == 1) ? 2 : 1;
+                /*int enemyPlayer = (player == 1) ? 2 : 1;
                 bool isAttacked = PositionIsAttacked(current_position, enemyPlayer);
                 if (isAttacked)
                 {
@@ -976,7 +1010,7 @@ namespace Cecs475.BoardGames.Chess.Model
                     {
                         board_weight += attacked_value;
                     }
-                }
+                }*/
             }
             return board_weight;
         }
