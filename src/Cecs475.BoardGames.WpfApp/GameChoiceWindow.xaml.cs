@@ -24,7 +24,7 @@ namespace Cecs475.BoardGames.WpfApp {
         {
             InitializeComponent();
 
-            Type iWpfGameFactory = typeof(IWpfGameFactory);
+            /*Type iWpfGameFactory = typeof(IWpfGameFactory);
 
             Assembly current = Assembly.GetExecutingAssembly();
 
@@ -53,7 +53,7 @@ namespace Cecs475.BoardGames.WpfApp {
             }
             IEnumerable<object> IEGamesList = gamesList;
             this.Resources.Add("GameTypes", IEGamesList);
-
+*/
 
         }
 
