@@ -254,7 +254,6 @@ namespace Cecs475.BoardGames.Chess.WpfView
                 {
                     mSquares[i].IsCheck = mChessBoard.isEnemyCheck();
                 }
-
                 i++;
             }
 

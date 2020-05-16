@@ -66,7 +66,7 @@ namespace Cecs475.BoardGames.ComputerOpponent {
 				{
 					bestWeight = w;
 					bestMove = move;
-					//want the minimum
+					//want the minimumz
 					beta = Math.Min(beta, w);
 				}
 				if(alpha >= beta)
