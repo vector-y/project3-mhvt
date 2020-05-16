@@ -1,29 +1,17 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 using RestSharp;
 using System;
-using System.Collections.Generic;
-using System.Dynamic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Security.AccessControl;
 using System.Security.Principal;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace Cecs475.BoardGames.WpfApp
 {
-   
+
     /// <summary>
     /// Interaction logic for LoadingWindow.xaml
     /// </summary>
@@ -52,8 +40,7 @@ namespace Cecs475.BoardGames.WpfApp
                 await DownloadFileTaskAsync(b);
             }
             int milliseconds = 2000;
-            Thread.Sleep(milliseconds);
-            this.Close();
+            
             var gamewindow = new GameChoiceWindow();
 
         }
