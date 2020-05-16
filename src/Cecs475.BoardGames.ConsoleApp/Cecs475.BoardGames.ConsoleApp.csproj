@@ -5,6 +5,8 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <Nullable>enable</Nullable>
     <LangVersion>8.0</LangVersion>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>Cecs475.BoardGames.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <ItemGroup>

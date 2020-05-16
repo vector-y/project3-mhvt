@@ -30,11 +30,10 @@ namespace Cecs475.BoardGames.WpfApp {
 
             var gamesPath = "../../../../src/Cecs475.BoardGames.WpfApp/bin/Debug/games";
 
-            DirectoryInfo d = new DirectoryInfo(gamesPath);
-            foreach (var file in d.GetFiles("*.dll"))
+            foreach (var file in Directory.GetFiles(gamesPath,"*.dll"))
             {
                 //is this how you load every file?
-                Assembly tttAssembly = Assembly.LoadFrom(gamesPath + "/" + file.Name);
+                Assembly tttAssembly = Assembly.Load(filesystem.io.getfilename(file) + ",Version=1.0.0.0,Culture=neutral,PublicKeyToken=68e71c13048d452a");
             }
 
             var gameTypes = AppDomain.CurrentDomain.GetAssemblies()
