@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Cecs475.BoardGames.WpfApp"
         mc:Ignorable="d"
-        Title="LoadingWindow" Height="450" Width="800" Loaded="loadEvent">
+        Title="LoadingWindow" Height="100" Width="200" Loaded="Window_Loaded">
     <Grid>
-        <Label Content="Loading games, please wait..." />
+        <Label x:Name="LoadingLabel">"Loading games... please wait</Label>
     </Grid>
 </Window>
