@@ -206,8 +206,6 @@ namespace Cecs475.BoardGames.Chess.WpfView
                     mChessBoard.ApplyMove(bestMove as ChessMove);
                 }
             }
-            string message = mChessBoard.BoardWeight.ToString();
-            MessageBox.Show(message);
             RebindState();
             if (mChessBoard.IsFinished)
             {

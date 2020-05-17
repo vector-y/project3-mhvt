@@ -1,4 +1,8 @@
+<<<<<<< HEAD
+﻿using Newtonsoft.Json;
+=======
 using Newtonsoft.Json;
+>>>>>>> ca6cba22fccc29600cc9327471b0fc40b4768d58
 using RestSharp;
 using System;
 using System.IO;
@@ -28,7 +32,7 @@ namespace Cecs475.BoardGames.WpfApp
         {
             var client = new RestClient("https://cecs475-boardamges.herokuapp.com");
             var request = new RestRequest("/api/games", Method.GET);
-            LoadingLabel.Content = "Loading games, please wait";
+
             var response = client.Execute(request);
             if(response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -39,10 +43,14 @@ namespace Cecs475.BoardGames.WpfApp
                 dynamic b = JsonConvert.DeserializeObject(response.Content);
                 await DownloadFileTaskAsync(b);
             }
+<<<<<<< HEAD
+            this.Close();
+=======
             int milliseconds = 2000;
+            
+>>>>>>> ca6cba22fccc29600cc9327471b0fc40b4768d58
             var gamewindow = new GameChoiceWindow();
             gamewindow.Show();
-            this.Close();
 
         }
         private async Task DownloadFileTaskAsync(dynamic b)

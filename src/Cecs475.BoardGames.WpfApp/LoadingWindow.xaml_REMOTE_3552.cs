@@ -28,7 +28,7 @@ namespace Cecs475.BoardGames.WpfApp
         {
             var client = new RestClient("https://cecs475-boardamges.herokuapp.com");
             var request = new RestRequest("/api/games", Method.GET);
-            LoadingLabel.Content = "Loading games, please wait";
+
             var response = client.Execute(request);
             if(response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -40,9 +40,8 @@ namespace Cecs475.BoardGames.WpfApp
                 await DownloadFileTaskAsync(b);
             }
             int milliseconds = 2000;
+            
             var gamewindow = new GameChoiceWindow();
-            gamewindow.Show();
-            this.Close();
 
         }
         private async Task DownloadFileTaskAsync(dynamic b)
